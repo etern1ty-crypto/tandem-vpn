@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tandem-vpn</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">⟁</span>
+        <div>
+          <h1>tandem-vpn</h1>
+          <p class="sub">Фаза 1 — Zapret (Flowseal) GUI</p>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="zapret">Zapret</button>
+        <button class="tab" data-tab="warp" disabled title="Фаза 2">WARP</button>
+        <button class="tab" data-tab="goida" disabled title="Фаза 3">Goida</button>
+      </nav>
+    </header>
+
+    <main id="zapret" class="panel active">
+      <section class="card status-card">
+        <div class="card-head">
+          <h2>Статус</h2>
+          <button id="refresh" class="ghost">Обновить</button>
+        </div>
+        <div class="status-grid">
+          <div class="stat"><span class="label">Служба zapret</span><span id="st-service" class="val">—</span></div>
+          <div class="stat"><span class="label">WinDivert</span><span id="st-windivert" class="val">—</span></div>
+          <div class="stat"><span class="label">winws.exe</span><span id="st-winws" class="val">—</span></div>
+          <div class="stat"><span class="label">.sys драйвер</span><span id="st-sys" class="val">—</span></div>
+          <div class="stat wide"><span class="label">Стратегия</span><span id="st-strategy" class="val">—</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Управление службой</h2></div>
+        <div class="row">
+          <label class="field">
+            <span>Стратегия обхода</span>
+            <select id="strategy"></select>
+          </label>
+          <div class="actions">
+            <button id="install" class="primary">Установить в автозапуск</button>
+            <button id="remove" class="danger">Удалить службы</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Настройки</h2></div>
+        <div class="toggles">
+          <label class="switch"><input type="checkbox" id="game" /><span>Game Filter (UDP/TCP &gt;1023)</span></label>
+          <label class="switch"><input type="checkbox" id="autoupd" /><span>Auto-Update Check</span></label>
+          <label class="field inline">
+            <span>IPSet Filter</span>
+            <select id="ipset">
+              <option value="none">none</option>
+              <option value="loaded">loaded</option>
+              <option value="any">any</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Обновления и инструменты</h2></div>
+        <div class="actions wrap">
+          <button id="upd-ipset" class="ghost">Обновить IPSet-список</button>
+          <button id="chk-upd" class="ghost">Проверить обновления</button>
+          <button id="diag" class="ghost">Диагностика</button>
+          <button id="tests" class="ghost">Запустить тесты</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Лог</h2>
+          <button id="clear-log" class="ghost">Очистить</button>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

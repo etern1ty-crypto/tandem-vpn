@@ -1,0 +1,146 @@
+:root {
+  --bg: #0b1020;
+  --bg-elev: #141b30;
+  --card: #161e36;
+  --line: #243150;
+  --text: #e8edf7;
+  --muted: #8a97b5;
+  --accent: #3ea6ff;
+  --ok: #3ddc97;
+  --warn: #ffcc55;
+  --danger: #ff5d6c;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(1200px 600px at 80% -10%, #18254a 0%, var(--bg) 55%);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: rgba(11, 16, 32, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand .logo {
+  font-size: 28px;
+  color: var(--accent);
+  background: var(--bg-elev);
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.brand h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+.brand .sub { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+.tabs { display: flex; gap: 8px; }
+.tab {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.tab.active { color: var(--text); border-color: var(--accent); background: rgba(62,166,255,.12); }
+.tab:disabled { opacity: .45; cursor: not-allowed; }
+
+.panel { display: none; padding: 24px; max-width: 1000px; margin: 0 auto; gap: 16px; flex-direction: column; }
+.panel.active { display: flex; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-head h2 { font-size: 15px; margin: 0; color: var(--text); }
+
+.status-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.stat {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.stat.wide { grid-column: 1 / -1; }
+.stat .label { font-size: 12px; color: var(--muted); }
+.stat .val { font-size: 15px; font-weight: 600; }
+.val.ok { color: var(--ok); }
+.val.warn { color: var(--warn); }
+.val.muted { color: var(--muted); font-weight: 500; }
+
+.row { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 240px; }
+.field.inline { flex-direction: row; align-items: center; gap: 10px; }
+.field > span { font-size: 13px; color: var(--muted); }
+
+select, input[type="text"] {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 160px;
+}
+
+.actions { display: flex; gap: 10px; align-items: center; }
+.actions.wrap { flex-wrap: wrap; }
+
+button {
+  font-size: 14px;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--bg-elev);
+  color: var(--text);
+  transition: filter .15s ease, border-color .15s ease;
+}
+button:hover { filter: brightness(1.15); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #04101f; font-weight: 600; }
+button.danger { border-color: var(--danger); color: var(--danger); }
+button.ghost { background: transparent; }
+
+.toggles { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+.switch { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+.log {
+  background: #070b16;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #b9c6e6;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .status-grid { grid-template-columns: repeat(2, 1fr); }
+}
