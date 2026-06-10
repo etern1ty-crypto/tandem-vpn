@@ -206,57 +206,63 @@ fn run_tests(state: tauri::State<AppState>) -> CmdResult<Vec<TargetResult>> {
 
 #[tauri::command]
 fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
-    let resp = ureq::get("https://api.github.com/repos/Flowseal/zapret-discord-youtube/releases/latest")
-        .set("User-Agent", "tandem-vpn")
-        .timeout(Duration::from_secs(10))
-        .call()
-        .map_err(err)?
-        .into_string()
-        .map_err(err)?;
-    
+    let resp =
+        ureq::get("https://api.github.com/repos/Flowseal/zapret-discord-youtube/releases/latest")
+            .set("User-Agent", "tandem-vpn")
+            .timeout(Duration::from_secs(10))
+            .call()
+            .map_err(err)?
+            .into_string()
+            .map_err(err)?;
+
     let release: serde_json::Value = serde_json::from_str(&resp).map_err(err)?;
-    let assets = release["assets"].as_array().ok_or_else(|| err("No assets found in release"))?;
-    
+    let assets = release["assets"]
+        .as_array()
+        .ok_or_else(|| err("No assets found in release"))?;
+
     let mut zip_url = None;
     for asset in assets {
         if let Some(name) = asset["name"].as_str() {
             if name.ends_with(".zip") {
-                zip_url = asset["browser_download_url"].as_str().map(|s| s.to_string());
+                zip_url = asset["browser_download_url"]
+                    .as_str()
+                    .map(|s| s.to_string());
                 break;
             }
         }
     }
     let zip_url = zip_url.ok_or_else(|| err("No zip asset found in latest release"))?;
-    
+
     let zip_resp = ureq::get(&zip_url)
         .set("User-Agent", "tandem-vpn")
         .timeout(Duration::from_secs(120))
         .call()
         .map_err(err)?;
-        
+
     let mut buf = Vec::new();
     let mut reader = zip_resp.into_reader();
     std::io::Read::read_to_end(&mut reader, &mut buf).map_err(err)?;
-    
+
     let install_dir = state.manager().install_dir().to_path_buf();
     std::fs::create_dir_all(&install_dir).map_err(err)?;
-    
+
     let cursor = std::io::Cursor::new(buf);
     zip_extract::extract(cursor, &install_dir, true).map_err(err)?;
-    
+
     Ok(())
 }
 
 #[tauri::command]
 fn update_hosts_file() -> CmdResult<()> {
-    let url = "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/hosts";
+    let url =
+        "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/hosts";
     let body = ureq::get(url)
         .timeout(Duration::from_secs(15))
         .call()
         .map_err(err)?
         .into_string()
         .map_err(err)?;
-        
+
     tandem_core::hosts::merge_hosts(&body).map_err(err)
 }
 
