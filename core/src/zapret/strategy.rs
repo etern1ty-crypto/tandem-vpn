@@ -196,7 +196,8 @@ start "zapret: %~n0" /min "%BIN%winws.exe" --wf-tcp=80,443,%GameFilterTCP% --wf-
         let bin = PathBuf::from("/opt/zapret/bin");
         let lists = PathBuf::from("/opt/zapret/lists");
         let out = parse_and_render(SAMPLE, &bin, &lists, &GameFilter::disabled()).unwrap();
-        assert!(out.contains("/opt/zapret/lists/list-general.txt"));
+        let lists_str = with_trailing_sep(&lists);
+        assert!(out.contains(&format!("{}list-general.txt", lists_str)));
         assert!(!out.contains("%LISTS%"));
         assert!(!out.contains("%BIN%"));
         // Disabled game filter -> placeholders gone, leaving a trailing comma like upstream.

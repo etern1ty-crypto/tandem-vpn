@@ -11,6 +11,7 @@
 //! * [`zapret::strategy`] — parsing a Flowseal strategy `.bat` into the
 //!   `winws.exe` argument string used to create the Windows service.
 
+pub mod hosts;
 pub mod sys;
 pub mod zapret;
 

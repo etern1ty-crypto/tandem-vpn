@@ -139,6 +139,27 @@ function wire() {
       .then(() => log(`IPSet Filter: ${e.target.value}`))
       .catch((err) => log(`IPSet Filter: ${err}`));
 
+  $("dl-zapret").onclick = async () => {
+    log("Скачивание актуального релиза Zapret (Flowseal)… это может занять минуту.");
+    try {
+      await invoke("download_zapret_release");
+      log("Zapret успешно скачан и распакован.");
+      loadStrategies(); // Перезагружаем список стратегий
+    } catch (e) {
+      log(`Ошибка скачивания Zapret: ${e}`);
+    }
+  };
+
+  $("upd-hosts").onclick = async () => {
+    log("Обновление файла hosts (потребуются права администратора)…");
+    try {
+      await invoke("update_hosts_file");
+      log("Файл hosts успешно обновлен.");
+    } catch (e) {
+      log(`Ошибка обновления hosts: ${e}`);
+    }
+  };
+
   $("upd-ipset").onclick = async () => {
     log("Загрузка актуального ipset-all.txt…");
     try {
