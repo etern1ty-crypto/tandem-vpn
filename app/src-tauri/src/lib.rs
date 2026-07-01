@@ -12,30 +12,10 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use tandem_core::engine::{self, EngineStatus, RouteInputs, CLASH_API_ADDR};
 use tandem_core::goida::{self, GoidaConfig};
+use tandem_core::rules::{self, Bucket, Override, OverrideStore};
 use tandem_core::sys::RealSys;
 use tandem_core::warp::WarpManager;
 use tandem_core::EngineManager;
-
-/// Seed list of RU-throttled-but-not-blocked foreign services routed
-/// through WARP. This is a starting point, not the final routing-rule
-/// design (Phase 4 replaces it with the full domestic/throttled/blocked
-/// bucket system).
-const WARP_DOMAIN_SUFFIXES: &[&str] = &[
-    ".youtube.com",
-    ".googlevideo.com",
-    ".ytimg.com",
-    ".discord.com",
-    ".discordapp.com",
-    ".discord.gg",
-    ".github.com",
-    ".githubusercontent.com",
-];
-
-/// Placeholder seed for the "services that geo-block Russia" bucket routed
-/// through Goida. Phase 4 replaces this with the full curated/user-editable
-/// bucket system — this only exists so `goida_select` has something to wire
-/// a rule to and prove the plumbing end-to-end.
-const GOIDA_DOMAIN_SUFFIXES: &[&str] = &[".gemini.google.com"];
 
 /// Test URL used for Goida delay-testing (must be `https://`, not `http://`
 /// — sing-box's Clash API delay endpoint silently ignores `http://` URLs).
@@ -45,12 +25,14 @@ const GOIDA_TEST_URL: &str = "https://www.gstatic.com/generate_204";
 /// and dropped from test results, per the desired "Test" UX.
 const GOIDA_MAX_DELAY_MS: u32 = 200;
 
-/// Shared application state: the active engine install directory, plus the
-/// most recently fetched Goida candidate list (kept so `goida_test_all`/
-/// `goida_select` can reference candidates by tag without re-fetching).
+/// Shared application state: the active engine install directory, the most
+/// recently fetched Goida candidate list (so `goida_test_all`/`goida_select`
+/// can reference candidates by tag without re-fetching), and the cached
+/// "blocks Russia" community domain list used for the Goida routing bucket.
 pub struct AppState {
     install_dir: Mutex<PathBuf>,
     goida_configs: Mutex<Vec<GoidaConfig>>,
+    goida_community_domains: Mutex<Vec<String>>,
 }
 
 impl AppState {
@@ -60,6 +42,40 @@ impl AppState {
 
     fn warp_manager(&self) -> WarpManager {
         WarpManager::new(self.install_dir.lock().unwrap().join("warp"))
+    }
+
+    fn override_store(&self) -> OverrideStore {
+        OverrideStore::new(self.install_dir.lock().unwrap().clone())
+    }
+
+    /// Assemble the shared parts of a config: rule-set definitions, the WARP
+    /// endpoint (if a profile has been generated), and `route.rules` built
+    /// from user overrides + the community-list buckets. Callers supply the
+    /// Goida-specific outbounds/tag (empty/`None` for a plain
+    /// `install_engine`, the full selector for `goida_select`).
+    fn shared_route_inputs(
+        &self,
+        goida_outbounds: Vec<serde_json::Value>,
+        goida_tag: Option<&str>,
+    ) -> CmdResult<RouteInputs> {
+        let warp = self.warp_manager();
+        let warp_tag = warp.profile_generated().then_some("warp");
+
+        let mut inputs = RouteInputs {
+            outbounds: goida_outbounds,
+            rule_set: rules::build_rule_set_defs(),
+            ..Default::default()
+        };
+
+        if let Some(tag) = warp_tag {
+            inputs.endpoints.push(warp.render_endpoint(tag).map_err(err)?);
+        }
+
+        let overrides = self.override_store().load().map_err(err)?;
+        let community = self.goida_community_domains.lock().unwrap().clone();
+        inputs.rules = rules::build_rules(&overrides, warp_tag, goida_tag, &community);
+
+        Ok(inputs)
     }
 }
 
@@ -119,27 +135,16 @@ fn get_engine_status(state: tauri::State<AppState>) -> CmdResult<EngineStatus> {
     state.manager().status(&RealSys).map_err(err)
 }
 
-/// Install the engine and start it as a Windows service. If a WARP profile
-/// has already been generated (via [`warp_register`]), its endpoint is
-/// wired in with a rule sending the seed RU-throttled-domain list through
-/// it; otherwise the config is `direct`-only. Goida outbounds/rules and the
-/// full routing-bucket system are added in later phases.
+/// Install the engine and start it as a Windows service: WARP wired in if a
+/// profile has been generated, the RKN-blocked bucket routed through it,
+/// and user overrides applied — all via [`AppState::shared_route_inputs`].
+/// No Goida server is selected by a plain install; use `goida_select` for
+/// that (it reinstalls with the full Goida bucket wired in too).
 #[tauri::command]
 fn install_engine(state: tauri::State<AppState>) -> CmdResult<()> {
     engine::ensure_windows().map_err(err)?;
     let mgr = state.manager();
-    let warp = state.warp_manager();
-
-    let mut inputs = RouteInputs::default();
-    if warp.profile_generated() {
-        let endpoint = warp.render_endpoint("warp").map_err(err)?;
-        inputs.endpoints.push(endpoint);
-        inputs.rules.push(serde_json::json!({
-            "domain_suffix": WARP_DOMAIN_SUFFIXES,
-            "outbound": "warp"
-        }));
-    }
-
+    let inputs = state.shared_route_inputs(Vec::new(), None)?;
     let config = mgr.render_config(&inputs);
     mgr.write_config(&config).map_err(err)?;
     mgr.install_service(&RealSys).map_err(err)
@@ -406,9 +411,10 @@ fn urlencode(s: &str) -> String {
 }
 
 /// Activate one previously tested Goida candidate: rebuilds the full config
-/// (WARP endpoint/rule if present, all Goida candidates grouped under a
-/// `selector` defaulted to `tag`, plus the seed foreign-blocks-Russia rule)
-/// and reinstalls the service — leaving `goida_test_all`'s test mode.
+/// via [`AppState::shared_route_inputs`] (WARP endpoint/rule if present,
+/// user overrides, the RKN-blocked and blocks-Russia buckets) plus all
+/// Goida candidates grouped under a `selector` defaulted to `tag`, and
+/// reinstalls the service — leaving `goida_test_all`'s test mode.
 #[tauri::command]
 fn goida_select(state: tauri::State<AppState>, tag: String) -> CmdResult<()> {
     engine::ensure_windows().map_err(err)?;
@@ -418,27 +424,48 @@ fn goida_select(state: tauri::State<AppState>, tag: String) -> CmdResult<()> {
     }
 
     let mgr = state.manager();
-    let warp = state.warp_manager();
-    let mut inputs = RouteInputs::default();
-
-    if warp.profile_generated() {
-        let endpoint = warp.render_endpoint("warp").map_err(err)?;
-        inputs.endpoints.push(endpoint);
-        inputs.rules.push(serde_json::json!({
-            "domain_suffix": WARP_DOMAIN_SUFFIXES,
-            "outbound": "warp"
-        }));
-    }
-
-    inputs.outbounds = goida::build_outbounds_with_selector(&configs, "goida", Some(&tag));
-    inputs.rules.push(serde_json::json!({
-        "domain_suffix": GOIDA_DOMAIN_SUFFIXES,
-        "outbound": "goida"
-    }));
-
+    let goida_outbounds = goida::build_outbounds_with_selector(&configs, "goida", Some(&tag));
+    let inputs = state.shared_route_inputs(goida_outbounds, Some("goida"))?;
     let config = mgr.render_config(&inputs);
     mgr.write_config(&config).map_err(err)?;
     mgr.install_service(&RealSys).map_err(err)
+}
+
+/// Fetch the "blocks Russia" community domain list used for the Goida
+/// routing bucket and cache it in `AppState`. Call before `install_engine`/
+/// `goida_select` for that bucket's rule to have any effect (it's simply
+/// omitted while the cache is empty).
+#[tauri::command]
+fn rules_refresh_community_list(state: tauri::State<AppState>) -> CmdResult<usize> {
+    let body = ureq::get(rules::COMMUNITY_LIST_URL)
+        .timeout(Duration::from_secs(20))
+        .call()
+        .map_err(err)?
+        .into_string()
+        .map_err(err)?;
+    let domains = rules::parse_domain_list(&body);
+    let count = domains.len();
+    *state.goida_community_domains.lock().unwrap() = domains;
+    Ok(count)
+}
+
+#[tauri::command]
+fn rules_get_overrides(state: tauri::State<AppState>) -> CmdResult<Vec<Override>> {
+    state.override_store().load().map_err(err)
+}
+
+#[tauri::command]
+fn rules_set_override(
+    state: tauri::State<AppState>,
+    domain: String,
+    bucket: Bucket,
+) -> CmdResult<Vec<Override>> {
+    state.override_store().set(&domain, bucket).map_err(err)
+}
+
+#[tauri::command]
+fn rules_remove_override(state: tauri::State<AppState>, domain: String) -> CmdResult<Vec<Override>> {
+    state.override_store().remove(&domain).map_err(err)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -448,6 +475,7 @@ pub fn run() {
         .manage(AppState {
             install_dir: Mutex::new(default_install_dir()),
             goida_configs: Mutex::new(Vec::new()),
+            goida_community_domains: Mutex::new(Vec::new()),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -463,6 +491,10 @@ pub fn run() {
             goida_fetch_list,
             goida_test_all,
             goida_select,
+            rules_refresh_community_list,
+            rules_get_overrides,
+            rules_set_override,
+            rules_remove_override,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tandem-vpn");

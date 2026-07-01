@@ -45,6 +45,9 @@ pub struct RouteInputs {
     /// Entries for the top-level `endpoints` array (e.g. a WARP `wireguard`
     /// endpoint). Endpoint tags are valid `route.rules[].outbound` targets.
     pub endpoints: Vec<Value>,
+    /// Entries for `route.rule_set` (remote/local rule-set definitions
+    /// referenced by tag from `rules`, e.g. [`crate::rules::build_rule_set_defs`]).
+    pub rule_set: Vec<Value>,
     /// Entries for `route.rules`.
     pub rules: Vec<Value>,
 }
@@ -114,6 +117,7 @@ impl EngineManager {
             "route": {
                 "auto_detect_interface": true,
                 "final": "direct",
+                "rule_set": inputs.rule_set,
                 "rules": inputs.rules
             }
         })
@@ -241,6 +245,7 @@ mod tests {
             outbounds: vec![goida_outbound],
             endpoints: vec![warp_endpoint],
             rules: vec![rule],
+            ..Default::default()
         };
         let cfg = mgr.render_config(&inputs);
         let outbounds = cfg["outbounds"].as_array().unwrap();

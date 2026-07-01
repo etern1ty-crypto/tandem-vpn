@@ -14,11 +14,14 @@
 //!   rendering the resulting WireGuard profile into a sing-box endpoint.
 //! * [`goida`] — parsing a public VLESS/Trojan/Shadowsocks subscription
 //!   list into sing-box outbounds.
+//! * [`rules`] — the direct/warp/goida routing buckets, sourced from a
+//!   maintained community domain-block list, plus user overrides.
 //! * [`hosts`] — idempotent hosts-file merging.
 
 pub mod engine;
 pub mod goida;
 pub mod hosts;
+pub mod rules;
 pub mod sys;
 pub mod warp;
 
