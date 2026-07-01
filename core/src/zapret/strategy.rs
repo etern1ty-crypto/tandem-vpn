@@ -36,42 +36,40 @@ impl Default for GameFilter {
 }
 
 impl GameFilter {
+    /// Disabled game filter. The placeholders substitute the dummy port `12`
+    /// (never an empty string), exactly like Flowseal's `service.bat`. This is
+    /// load-bearing: an empty value produces malformed args such as
+    /// `--filter-tcp=` and a trailing-comma `--wf-tcp=...,`, which make
+    /// `winws.exe` reject the command line and exit — so the service is
+    /// "installed" but the bypass never actually runs.
     pub fn disabled() -> Self {
         Self {
             enabled: false,
+            tcp: "12".into(),
+            udp: "12".into(),
+            combined: "12".into(),
+        }
+    }
+
+    /// Enabled game filter — the full dynamic/ephemeral port range, matching
+    /// Flowseal's "TCP and UDP" mode.
+    pub fn enabled() -> Self {
+        Self {
+            enabled: true,
             tcp: "1024-65535".into(),
             udp: "1024-65535".into(),
             combined: "1024-65535".into(),
         }
     }
 
-    pub fn enabled() -> Self {
-        Self {
-            enabled: true,
-            ..Self::disabled()
-        }
-    }
-
     fn tcp_value(&self) -> &str {
-        if self.enabled {
-            &self.tcp
-        } else {
-            ""
-        }
+        &self.tcp
     }
     fn udp_value(&self) -> &str {
-        if self.enabled {
-            &self.udp
-        } else {
-            ""
-        }
+        &self.udp
     }
     fn combined_value(&self) -> &str {
-        if self.enabled {
-            &self.combined
-        } else {
-            ""
-        }
+        &self.combined
     }
 }
 
@@ -200,8 +198,9 @@ start "zapret: %~n0" /min "%BIN%winws.exe" --wf-tcp=80,443,%GameFilterTCP% --wf-
         assert!(out.contains(&format!("{}list-general.txt", lists_str)));
         assert!(!out.contains("%LISTS%"));
         assert!(!out.contains("%BIN%"));
-        // Disabled game filter -> placeholders gone, leaving a trailing comma like upstream.
-        assert!(out.contains("--wf-tcp=80,443,"));
+        // Disabled game filter -> dummy port `12` (never empty), like upstream.
+        assert!(out.contains("--wf-tcp=80,443,12"));
+        assert!(out.contains("--wf-udp=443,12"));
         assert!(!out.contains("%GameFilterTCP%"));
     }
 

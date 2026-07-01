@@ -249,6 +249,10 @@ fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
     let cursor = std::io::Cursor::new(buf);
     zip_extract::extract(cursor, &install_dir, true).map_err(err)?;
 
+    // The release zip omits the per-user list files that every strategy
+    // references; create them now so winws.exe can start after install.
+    state.manager().ensure_user_lists().map_err(err)?;
+
     Ok(())
 }
 
