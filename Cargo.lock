@@ -3208,6 +3208,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-shell",
  "ureq",
+ "url",
  "zip-extract",
 ]
 
@@ -3215,9 +3216,11 @@ dependencies = [
 name = "tandem-core"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "url",
 ]
 
 [[package]]
@@ -3961,6 +3964,8 @@ dependencies = [
  "once_cell",
  "rustls",
  "rustls-pki-types",
+ "serde",
+ "serde_json",
  "url",
  "webpki-roots 0.26.11",
 ]

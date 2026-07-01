@@ -21,6 +21,10 @@ use std::path::{Path, PathBuf};
 /// Windows service name created for the routing engine.
 pub const SERVICE_NAME: &str = "tandem-singbox";
 
+/// Address of sing-box's Clash-compatible control API (`experimental.clash_api`),
+/// used by the Tauri layer to drive delay-tests and outbound selection.
+pub const CLASH_API_ADDR: &str = "127.0.0.1:9191";
+
 /// Aggregate status shown on the dashboard.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EngineStatus {
@@ -93,7 +97,7 @@ impl EngineManager {
         json!({
             "log": { "level": "info", "timestamp": true },
             "experimental": {
-                "clash_api": { "external_controller": "127.0.0.1:9191" }
+                "clash_api": { "external_controller": CLASH_API_ADDR }
             },
             "inbounds": [{
                 "type": "tun",

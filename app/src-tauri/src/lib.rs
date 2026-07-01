@@ -10,7 +10,8 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use tandem_core::engine::{self, EngineStatus, RouteInputs};
+use tandem_core::engine::{self, EngineStatus, RouteInputs, CLASH_API_ADDR};
+use tandem_core::goida::{self, GoidaConfig};
 use tandem_core::sys::RealSys;
 use tandem_core::warp::WarpManager;
 use tandem_core::EngineManager;
@@ -30,9 +31,26 @@ const WARP_DOMAIN_SUFFIXES: &[&str] = &[
     ".githubusercontent.com",
 ];
 
-/// Shared application state: the active engine install directory.
+/// Placeholder seed for the "services that geo-block Russia" bucket routed
+/// through Goida. Phase 4 replaces this with the full curated/user-editable
+/// bucket system — this only exists so `goida_select` has something to wire
+/// a rule to and prove the plumbing end-to-end.
+const GOIDA_DOMAIN_SUFFIXES: &[&str] = &[".gemini.google.com"];
+
+/// Test URL used for Goida delay-testing (must be `https://`, not `http://`
+/// — sing-box's Clash API delay endpoint silently ignores `http://` URLs).
+const GOIDA_TEST_URL: &str = "https://www.gstatic.com/generate_204";
+
+/// Configs with a measured delay at or above this are treated as unusable
+/// and dropped from test results, per the desired "Test" UX.
+const GOIDA_MAX_DELAY_MS: u32 = 200;
+
+/// Shared application state: the active engine install directory, plus the
+/// most recently fetched Goida candidate list (kept so `goida_test_all`/
+/// `goida_select` can reference candidates by tag without re-fetching).
 pub struct AppState {
     install_dir: Mutex<PathBuf>,
+    goida_configs: Mutex<Vec<GoidaConfig>>,
 }
 
 impl AppState {
@@ -295,12 +313,141 @@ fn download_singbox_release(state: tauri::State<AppState>) -> CmdResult<()> {
     Ok(())
 }
 
+/// Fetch a Goida-style public subscription (plaintext, one `vless://`/
+/// `trojan://`/`ss://` URI per line — e.g. an AvenCores/goida-vpn-configs
+/// raw githubmirror link) and parse it. Stores the parsed list in
+/// `AppState` so `goida_test_all`/`goida_select` can reference candidates
+/// by tag without re-fetching.
+#[tauri::command]
+fn goida_fetch_list(state: tauri::State<AppState>, url: String) -> CmdResult<Vec<GoidaConfig>> {
+    let body = ureq::get(&url)
+        .timeout(Duration::from_secs(20))
+        .call()
+        .map_err(err)?
+        .into_string()
+        .map_err(err)?;
+    let configs = goida::parse_subscription(&body);
+    *state.goida_configs.lock().unwrap() = configs.clone();
+    Ok(configs)
+}
+
+#[derive(Serialize, Clone)]
+pub struct GoidaTestResult {
+    tag: String,
+    remark: String,
+    country_code: Option<String>,
+    country_flag: Option<String>,
+    delay_ms: u32,
+}
+
+/// Bulk delay-test every previously fetched Goida candidate.
+///
+/// Rebuilds the engine config with *only* the candidate outbounds (no WARP
+/// endpoint, no active routing rules — `route.final` stays `direct`), so no
+/// live tunnel is in flight while hundreds of test connections run, then
+/// reinstalls the service into this "test mode". Delay tests run through
+/// sing-box's Clash-compatible API (`GET /proxies/{tag}/delay`) — this
+/// bypasses the router entirely, probing each candidate outbound directly,
+/// so it can't interfere with (or be interfered with by) routed traffic.
+/// Survivors under [`GOIDA_MAX_DELAY_MS`] are returned; the rest are
+/// dropped. Call `install_engine` afterwards to leave test mode.
+#[tauri::command]
+fn goida_test_all(state: tauri::State<AppState>) -> CmdResult<Vec<GoidaTestResult>> {
+    engine::ensure_windows().map_err(err)?;
+    let configs = state.goida_configs.lock().unwrap().clone();
+    if configs.is_empty() {
+        return Err(err("No Goida configs loaded — call goida_fetch_list first"));
+    }
+
+    let mgr = state.manager();
+    let inputs = RouteInputs {
+        outbounds: goida::build_outbounds_with_selector(&configs, "goida", None),
+        ..Default::default()
+    };
+    let config = mgr.render_config(&inputs);
+    mgr.write_config(&config).map_err(err)?;
+    mgr.install_service(&RealSys).map_err(err)?;
+
+    // Give the service + Clash API a moment to come up after (re)install.
+    std::thread::sleep(Duration::from_millis(1500));
+
+    let mut results = Vec::new();
+    for cfg in &configs {
+        let url = format!(
+            "http://{CLASH_API_ADDR}/proxies/{}/delay?timeout=5000&url={}",
+            urlencode(&cfg.tag),
+            urlencode(GOIDA_TEST_URL)
+        );
+        let delay_ms = ureq::get(&url)
+            .timeout(Duration::from_secs(6))
+            .call()
+            .ok()
+            .and_then(|resp| resp.into_json::<serde_json::Value>().ok())
+            .and_then(|v| v["delay"].as_u64())
+            .map(|d| d as u32);
+
+        if let Some(delay_ms) = delay_ms {
+            if delay_ms < GOIDA_MAX_DELAY_MS {
+                results.push(GoidaTestResult {
+                    tag: cfg.tag.clone(),
+                    remark: cfg.remark.clone(),
+                    country_code: cfg.country_code.clone(),
+                    country_flag: cfg.country_flag.clone(),
+                    delay_ms,
+                });
+            }
+        }
+    }
+    Ok(results)
+}
+
+fn urlencode(s: &str) -> String {
+    url::form_urlencoded::byte_serialize(s.as_bytes()).collect()
+}
+
+/// Activate one previously tested Goida candidate: rebuilds the full config
+/// (WARP endpoint/rule if present, all Goida candidates grouped under a
+/// `selector` defaulted to `tag`, plus the seed foreign-blocks-Russia rule)
+/// and reinstalls the service — leaving `goida_test_all`'s test mode.
+#[tauri::command]
+fn goida_select(state: tauri::State<AppState>, tag: String) -> CmdResult<()> {
+    engine::ensure_windows().map_err(err)?;
+    let configs = state.goida_configs.lock().unwrap().clone();
+    if !configs.iter().any(|c| c.tag == tag) {
+        return Err(err(format!("unknown goida tag: {tag}")));
+    }
+
+    let mgr = state.manager();
+    let warp = state.warp_manager();
+    let mut inputs = RouteInputs::default();
+
+    if warp.profile_generated() {
+        let endpoint = warp.render_endpoint("warp").map_err(err)?;
+        inputs.endpoints.push(endpoint);
+        inputs.rules.push(serde_json::json!({
+            "domain_suffix": WARP_DOMAIN_SUFFIXES,
+            "outbound": "warp"
+        }));
+    }
+
+    inputs.outbounds = goida::build_outbounds_with_selector(&configs, "goida", Some(&tag));
+    inputs.rules.push(serde_json::json!({
+        "domain_suffix": GOIDA_DOMAIN_SUFFIXES,
+        "outbound": "goida"
+    }));
+
+    let config = mgr.render_config(&inputs);
+    mgr.write_config(&config).map_err(err)?;
+    mgr.install_service(&RealSys).map_err(err)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             install_dir: Mutex::new(default_install_dir()),
+            goida_configs: Mutex::new(Vec::new()),
         })
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -313,6 +460,9 @@ pub fn run() {
             warp_status,
             warp_register,
             download_wgcf_release,
+            goida_fetch_list,
+            goida_test_all,
+            goida_select,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tandem-vpn");

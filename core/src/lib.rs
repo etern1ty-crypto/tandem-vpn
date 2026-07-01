@@ -12,9 +12,12 @@
 //! * [`engine`] — sing-box process/service lifecycle and config generation.
 //! * [`warp`] — free Cloudflare WARP account registration (via `wgcf`) and
 //!   rendering the resulting WireGuard profile into a sing-box endpoint.
+//! * [`goida`] — parsing a public VLESS/Trojan/Shadowsocks subscription
+//!   list into sing-box outbounds.
 //! * [`hosts`] — idempotent hosts-file merging.
 
 pub mod engine;
+pub mod goida;
 pub mod hosts;
 pub mod sys;
 pub mod warp;
