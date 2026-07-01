@@ -517,7 +517,12 @@ mod tests {
 
     #[test]
     fn install_plans_expected_commands() {
-        let mgr = ZapretManager::new("/opt/zapret");
+        // install_service() now also creates the user-list files on disk
+        // (ensure_user_lists), so this needs a writable directory instead of
+        // the fixed "/opt/zapret" — that path requires root on Linux and
+        // broke this test outside Windows.
+        let dir = std::env::temp_dir().join(format!("tandem-install-plan-{}", std::process::id()));
+        let mgr = ZapretManager::new(&dir);
         let sys = MockSys::ok();
         let strategy =
             "start \"z\" /min \"%BIN%winws.exe\" --wf-tcp=80,443 --hostlist=\"%LISTS%a.txt\"";
@@ -530,6 +535,7 @@ mod tests {
         assert!(log.iter().any(|c| c.contains("zapret-discord-youtube")));
         // strategy stem (without extension) recorded
         assert!(log.iter().any(|c| c.contains("general (ALT)")));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -620,7 +626,10 @@ mod tests {
             .unwrap();
         assert!(bin_path.contains("--wf-tcp=80,443,12"), "got: {bin_path}");
         assert!(bin_path.contains("--filter-tcp=12"), "got: {bin_path}");
-        assert!(!bin_path.contains("--filter-tcp= "), "empty filter value: {bin_path}");
+        assert!(
+            !bin_path.contains("--filter-tcp= "),
+            "empty filter value: {bin_path}"
+        );
     }
 
     #[test]
