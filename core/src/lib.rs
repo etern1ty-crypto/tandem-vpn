@@ -1,21 +1,23 @@
 //! `tandem-core` — cross-platform core logic for the tandem-vpn GUI.
 //!
-//! Phase 1 covers the Zapret (Flowseal) engine: everything that the upstream
-//! `service.bat` does, reimplemented as testable Rust so it can be driven from
-//! a Tauri GUI instead of an interactive batch-file menu.
+//! A rule-based routing core built around `sing-box`: a TUN inbound captures
+//! all system traffic, and `route.rules` send it out one of three ways —
+//! `direct` (RU-domestic sites, games, anything unmatched), `warp`
+//! (Cloudflare WARP, for RU-throttled-but-not-blocked foreign services), or
+//! a Goida-sourced outbound (for services that geo-block Russia outright).
 //!
 //! The module is split into:
 //! * [`sys`] — a thin abstraction over process execution so command planning
 //!   can be unit-tested without a Windows host.
-//! * [`zapret`] — service install/remove/status, toggles and updates.
-//! * [`zapret::strategy`] — parsing a Flowseal strategy `.bat` into the
-//!   `winws.exe` argument string used to create the Windows service.
+//! * [`engine`] — sing-box process/service lifecycle and config generation.
+//! * [`hosts`] — idempotent hosts-file merging.
 
+pub mod engine;
 pub mod hosts;
 pub mod sys;
-pub mod zapret;
 
-pub use zapret::{GameFilter, IpsetFilter, ServiceState, ZapretManager, ZapretStatus};
+pub use engine::{EngineManager, EngineStatus};
+pub use sys::ServiceState;
 
 /// Crate-wide error type.
 #[derive(Debug, thiserror::Error)]
@@ -30,8 +32,6 @@ pub enum Error {
     },
     #[error("unsupported platform: this operation requires Windows")]
     UnsupportedPlatform,
-    #[error("could not parse strategy file: {0}")]
-    Strategy(String),
     #[error("{0}")]
     Other(String),
 }

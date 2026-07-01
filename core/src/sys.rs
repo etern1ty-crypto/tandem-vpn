@@ -6,8 +6,54 @@
 //! ([`PlannedCommand`]) and run them through a [`Sys`] implementation. Tests use
 //! [`MockSys`] to assert the planned commands without touching the OS.
 
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::process::Command;
+
+/// State of a Windows service as reported by `sc query`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ServiceState {
+    Running,
+    Stopped,
+    StopPending,
+    StartPending,
+    NotInstalled,
+    Unknown,
+}
+
+/// Parse a service state out of `sc query` stdout. Generic to any service
+/// name — used for both the routing-engine service and ancillary services
+/// (e.g. BFE) queried during diagnostics.
+pub fn parse_sc_state(stdout: &str, exit_code: Option<i32>) -> ServiceState {
+    // 1060 == "service does not exist"; sc also prints FAILED 1060.
+    if exit_code == Some(1060) || stdout.contains("1060") {
+        return ServiceState::NotInstalled;
+    }
+    for line in stdout.lines() {
+        let l = line.trim();
+        if l.starts_with("STATE") {
+            let upper = l.to_uppercase();
+            if upper.contains("STOP_PENDING") {
+                return ServiceState::StopPending;
+            }
+            if upper.contains("START_PENDING") {
+                return ServiceState::StartPending;
+            }
+            if upper.contains("RUNNING") {
+                return ServiceState::Running;
+            }
+            if upper.contains("STOPPED") {
+                return ServiceState::Stopped;
+            }
+        }
+    }
+    if exit_code == Some(0) {
+        ServiceState::Unknown
+    } else {
+        ServiceState::NotInstalled
+    }
+}
 
 /// A command to be executed: a program plus its arguments.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -111,5 +157,27 @@ impl Sys for MockSys {
     fn run(&self, cmd: &PlannedCommand) -> crate::Result<CmdOutput> {
         self.recorded.borrow_mut().push(cmd.clone());
         Ok((self.responder)(cmd))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_running_state() {
+        let out = "SERVICE_NAME: tandem-singbox\n        STATE              : 4  RUNNING";
+        assert_eq!(parse_sc_state(out, Some(0)), ServiceState::Running);
+    }
+
+    #[test]
+    fn parses_stop_pending_and_missing() {
+        let out = "        STATE              : 3  STOP_PENDING";
+        assert_eq!(parse_sc_state(out, Some(0)), ServiceState::StopPending);
+        let missing = "[SC] EnumQueryServicesStatus:OpenService FAILED 1060:";
+        assert_eq!(
+            parse_sc_state(missing, Some(1060)),
+            ServiceState::NotInstalled
+        );
     }
 }

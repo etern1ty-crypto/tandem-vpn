@@ -2,34 +2,34 @@
 //!
 //! Thin wrappers that adapt [`tandem_core`] to the GUI. Windows-only service
 //! operations run through [`tandem_core::sys::RealSys`]; network operations
-//! (update checks, list downloads, connectivity tests) use `ureq` here so the
-//! core crate stays offline-testable.
+//! (release downloads, connectivity tests) use `ureq` here so the core crate
+//! stays offline-testable.
 
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
+use tandem_core::engine::{self, EngineStatus};
 use tandem_core::sys::RealSys;
-use tandem_core::zapret::{self, DiagnosticsReport, IpsetFilter, ZapretStatus};
-use tandem_core::ZapretManager;
+use tandem_core::EngineManager;
 
-/// Shared application state: the active Zapret install directory.
+/// Shared application state: the active engine install directory.
 pub struct AppState {
     install_dir: Mutex<PathBuf>,
 }
 
 impl AppState {
-    fn manager(&self) -> ZapretManager {
-        ZapretManager::new(self.install_dir.lock().unwrap().clone())
+    fn manager(&self) -> EngineManager {
+        EngineManager::new(self.install_dir.lock().unwrap().clone())
     }
 }
 
 fn default_install_dir() -> PathBuf {
     std::env::current_exe()
         .ok()
-        .and_then(|p| p.parent().map(|d| d.join("zapret")))
-        .unwrap_or_else(|| PathBuf::from("zapret"))
+        .and_then(|p| p.parent().map(|d| d.join("engine")))
+        .unwrap_or_else(|| PathBuf::from("engine"))
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -41,17 +41,6 @@ fn err<E: std::fmt::Display>(e: E) -> String {
 #[derive(Serialize)]
 pub struct Settings {
     install_dir: String,
-    game_filter: bool,
-    auto_update: bool,
-    ipset_filter: IpsetFilter,
-}
-
-#[derive(Serialize)]
-pub struct UpdateCheck {
-    local: String,
-    remote: String,
-    update_available: bool,
-    release_url: String,
 }
 
 #[derive(Serialize)]
@@ -63,14 +52,21 @@ pub struct TargetResult {
     error: Option<String>,
 }
 
+/// Built-in connectivity-test targets (RU-throttled foreign services).
+fn default_test_targets() -> Vec<&'static str> {
+    vec![
+        "https://www.youtube.com",
+        "https://discord.com",
+        "https://gateway.discord.gg",
+        "https://github.com",
+    ]
+}
+
 #[tauri::command]
 fn get_settings(state: tauri::State<AppState>) -> CmdResult<Settings> {
     let mgr = state.manager();
     Ok(Settings {
         install_dir: mgr.install_dir().to_string_lossy().into_owned(),
-        game_filter: mgr.game_filter_enabled(),
-        auto_update: mgr.auto_update_enabled(),
-        ipset_filter: mgr.ipset_filter(),
     })
 }
 
@@ -81,119 +77,45 @@ fn set_install_dir(state: tauri::State<AppState>, dir: String) -> CmdResult<()> 
 }
 
 #[tauri::command]
-fn list_strategies(state: tauri::State<AppState>) -> CmdResult<Vec<String>> {
-    state.manager().list_strategies().map_err(err)
-}
-
-#[tauri::command]
-fn get_status(state: tauri::State<AppState>) -> CmdResult<ZapretStatus> {
+fn get_engine_status(state: tauri::State<AppState>) -> CmdResult<EngineStatus> {
     state.manager().status(&RealSys).map_err(err)
 }
 
+/// Install the engine with a `direct`-only config (no WARP/Goida outbounds
+/// wired up yet — added in later phases) and start it as a Windows service.
 #[tauri::command]
-fn run_diagnostics(state: tauri::State<AppState>) -> CmdResult<DiagnosticsReport> {
-    state.manager().diagnostics(&RealSys).map_err(err)
-}
-
-#[tauri::command]
-fn install_service(
-    state: tauri::State<AppState>,
-    strategy: String,
-    game_filter: bool,
-) -> CmdResult<()> {
-    zapret::ensure_windows().map_err(err)?;
+fn install_engine(state: tauri::State<AppState>) -> CmdResult<()> {
+    engine::ensure_windows().map_err(err)?;
     let mgr = state.manager();
-    let contents = std::fs::read_to_string(mgr.install_dir().join(&strategy)).map_err(err)?;
-    let game = if game_filter {
-        zapret::GameFilter::enabled()
-    } else {
-        zapret::GameFilter::disabled()
-    };
-    mgr.set_game_filter(game_filter).map_err(err)?;
-    mgr.install_service(&RealSys, &strategy, &contents, &game)
-        .map_err(err)
+    let config = mgr.render_config(&[], &[]);
+    mgr.write_config(&config).map_err(err)?;
+    mgr.install_service(&RealSys).map_err(err)
 }
 
 #[tauri::command]
-fn remove_service(state: tauri::State<AppState>) -> CmdResult<()> {
-    zapret::ensure_windows().map_err(err)?;
+fn remove_engine(state: tauri::State<AppState>) -> CmdResult<()> {
+    engine::ensure_windows().map_err(err)?;
     state.manager().remove_service(&RealSys).map_err(err)
 }
 
 #[tauri::command]
-fn set_game_filter(state: tauri::State<AppState>, enabled: bool) -> CmdResult<()> {
-    state.manager().set_game_filter(enabled).map_err(err)
-}
-
-#[tauri::command]
-fn set_auto_update(state: tauri::State<AppState>, enabled: bool) -> CmdResult<()> {
-    state.manager().set_auto_update(enabled).map_err(err)
-}
-
-#[tauri::command]
-fn set_ipset_filter(state: tauri::State<AppState>, mode: IpsetFilter) -> CmdResult<()> {
-    state.manager().set_ipset_filter(mode).map_err(err)
-}
-
-fn http_get_text(url: &str) -> CmdResult<String> {
-    ureq::get(url)
-        .timeout(Duration::from_secs(10))
-        .call()
-        .map_err(err)?
-        .into_string()
-        .map_err(err)
-}
-
-#[tauri::command]
-fn check_updates(local_version: String) -> CmdResult<UpdateCheck> {
-    let remote = http_get_text(zapret::VERSION_URL)?.trim().to_string();
-    let update = zapret::update_available(&local_version, &remote);
-    let release_url = if update {
-        format!("{}{}", zapret::RELEASE_TAG_URL, remote)
-    } else {
-        zapret::LATEST_RELEASE_URL.to_string()
-    };
-    Ok(UpdateCheck {
-        local: local_version,
-        remote,
-        update_available: update,
-        release_url,
-    })
-}
-
-#[tauri::command]
-fn update_ipset_list(state: tauri::State<AppState>) -> CmdResult<usize> {
-    let body = ureq::get(zapret::IPSET_LIST_URL)
-        .timeout(Duration::from_secs(30))
-        .call()
-        .map_err(err)?
-        .into_string()
-        .map_err(err)?;
-    state
-        .manager()
-        .write_ipset_list(body.as_bytes())
-        .map_err(err)?;
-    Ok(body.lines().filter(|l| !l.trim().is_empty()).count())
-}
-
-#[tauri::command]
-fn run_tests(state: tauri::State<AppState>) -> CmdResult<Vec<TargetResult>> {
-    let targets = state.manager().test_targets();
+fn run_tests() -> CmdResult<Vec<TargetResult>> {
+    let targets = default_test_targets();
     let mut results = Vec::with_capacity(targets.len());
     for url in targets {
         let started = Instant::now();
-        let res = ureq::get(&url).timeout(Duration::from_secs(8)).call();
+        let res = ureq::get(url).timeout(Duration::from_secs(8)).call();
         let ms = started.elapsed().as_millis();
         match res {
             Ok(resp) => results.push(TargetResult {
-                url,
+                url: url.to_string(),
                 ok: resp.status() < 400,
                 status: Some(resp.status()),
                 ms,
                 error: None,
             }),
             Err(e) => results.push(TargetResult {
-                url,
+                url: url.to_string(),
                 ok: false,
                 status: None,
                 ms,
@@ -204,16 +126,17 @@ fn run_tests(state: tauri::State<AppState>) -> CmdResult<Vec<TargetResult>> {
     Ok(results)
 }
 
+/// Download the latest `sing-box` Windows release and extract it into the
+/// engine install directory (mirrors the previous Flowseal-zip download).
 #[tauri::command]
-fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
-    let resp =
-        ureq::get("https://api.github.com/repos/Flowseal/zapret-discord-youtube/releases/latest")
-            .set("User-Agent", "tandem-vpn")
-            .timeout(Duration::from_secs(10))
-            .call()
-            .map_err(err)?
-            .into_string()
-            .map_err(err)?;
+fn download_singbox_release(state: tauri::State<AppState>) -> CmdResult<()> {
+    let resp = ureq::get("https://api.github.com/repos/SagerNet/sing-box/releases/latest")
+        .set("User-Agent", "tandem-vpn")
+        .timeout(Duration::from_secs(10))
+        .call()
+        .map_err(err)?
+        .into_string()
+        .map_err(err)?;
 
     let release: serde_json::Value = serde_json::from_str(&resp).map_err(err)?;
     let assets = release["assets"]
@@ -223,7 +146,8 @@ fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
     let mut zip_url = None;
     for asset in assets {
         if let Some(name) = asset["name"].as_str() {
-            if name.ends_with(".zip") {
+            let lower = name.to_lowercase();
+            if lower.contains("windows") && lower.contains("amd64") && lower.ends_with(".zip") {
                 zip_url = asset["browser_download_url"]
                     .as_str()
                     .map(|s| s.to_string());
@@ -231,7 +155,8 @@ fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
             }
         }
     }
-    let zip_url = zip_url.ok_or_else(|| err("No zip asset found in latest release"))?;
+    let zip_url =
+        zip_url.ok_or_else(|| err("No windows-amd64 zip asset found in latest release"))?;
 
     let zip_resp = ureq::get(&zip_url)
         .set("User-Agent", "tandem-vpn")
@@ -252,20 +177,6 @@ fn download_zapret_release(state: tauri::State<AppState>) -> CmdResult<()> {
     Ok(())
 }
 
-#[tauri::command]
-fn update_hosts_file() -> CmdResult<()> {
-    let url =
-        "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/.service/hosts";
-    let body = ureq::get(url)
-        .timeout(Duration::from_secs(15))
-        .call()
-        .map_err(err)?
-        .into_string()
-        .map_err(err)?;
-
-    tandem_core::hosts::merge_hosts(&body).map_err(err)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -276,19 +187,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_settings,
             set_install_dir,
-            list_strategies,
-            get_status,
-            run_diagnostics,
-            install_service,
-            remove_service,
-            set_game_filter,
-            set_auto_update,
-            set_ipset_filter,
-            check_updates,
-            update_ipset_list,
+            get_engine_status,
+            install_engine,
+            remove_engine,
             run_tests,
-            download_zapret_release,
-            update_hosts_file,
+            download_singbox_release,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tandem-vpn");

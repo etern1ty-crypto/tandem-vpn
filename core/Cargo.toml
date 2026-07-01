@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Cross-platform core logic for the tandem-vpn GUI (Zapret service management, strategy parsing)."
+description = "Cross-platform core logic for the tandem-vpn GUI (sing-box routing engine, WARP/Goida config generation)."
 
 [lib]
 name = "tandem_core"
@@ -12,7 +12,5 @@ path = "src/lib.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-thiserror = "1"
-
-[dev-dependencies]
 serde_json = "1"
+thiserror = "1"
