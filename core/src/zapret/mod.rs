@@ -175,6 +175,33 @@ impl ZapretManager {
         Ok(())
     }
 
+    /// Create the placeholder per-user lists that Flowseal's `service.bat`
+    /// generates in its `:load_user_lists` step. Every strategy references
+    /// these files unconditionally (`--hostlist="%LISTS%list-general-user.txt"`,
+    /// `--hostlist-exclude="%LISTS%list-exclude-user.txt"`,
+    /// `--ipset-exclude="%LISTS%ipset-exclude-user.txt"`). They are *not* shipped
+    /// in the release zip, so without this `winws.exe` fails to open them and
+    /// exits — the service looks installed but the bypass never runs.
+    ///
+    /// Idempotent: existing files (with the user's own entries) are left alone.
+    pub fn ensure_user_lists(&self) -> Result<()> {
+        let lists = self.lists_dir();
+        std::fs::create_dir_all(&lists)?;
+        // (filename, placeholder contents) — mirrors service.bat :load_user_lists.
+        let defaults = [
+            ("ipset-exclude-user.txt", "203.0.113.113/32\n"),
+            ("list-general-user.txt", "domain.example.abc\n"),
+            ("list-exclude-user.txt", "domain.example.abc\n"),
+        ];
+        for (name, contents) in defaults {
+            let path = lists.join(name);
+            if !path.exists() {
+                std::fs::write(&path, contents)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Install a strategy as an auto-start Windows service (menu option 1).
     pub fn install_service<S: Sys>(
         &self,
@@ -183,6 +210,8 @@ impl ZapretManager {
         strategy_contents: &str,
         game: &GameFilter,
     ) -> Result<()> {
+        // Strategies reference the per-user lists; create them before winws runs.
+        self.ensure_user_lists()?;
         let bin_path = self.build_bin_path(strategy_contents, game)?;
 
         // Clean any previous instance first.
@@ -488,7 +517,12 @@ mod tests {
 
     #[test]
     fn install_plans_expected_commands() {
-        let mgr = ZapretManager::new("/opt/zapret");
+        // install_service() now also creates the user-list files on disk
+        // (ensure_user_lists), so this needs a writable directory instead of
+        // the fixed "/opt/zapret" — that path requires root on Linux and
+        // broke this test outside Windows.
+        let dir = std::env::temp_dir().join(format!("tandem-install-plan-{}", std::process::id()));
+        let mgr = ZapretManager::new(&dir);
         let sys = MockSys::ok();
         let strategy =
             "start \"z\" /min \"%BIN%winws.exe\" --wf-tcp=80,443 --hostlist=\"%LISTS%a.txt\"";
@@ -501,6 +535,7 @@ mod tests {
         assert!(log.iter().any(|c| c.contains("zapret-discord-youtube")));
         // strategy stem (without extension) recorded
         assert!(log.iter().any(|c| c.contains("general (ALT)")));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -555,6 +590,46 @@ mod tests {
         mgr.set_ipset_filter(IpsetFilter::Any).unwrap();
         assert_eq!(mgr.ipset_filter(), IpsetFilter::Any);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn ensure_user_lists_creates_missing_files() {
+        let dir = std::env::temp_dir().join(format!("tandem-userlists-{}", std::process::id()));
+        let mgr = ZapretManager::new(&dir);
+        mgr.ensure_user_lists().unwrap();
+        for name in [
+            "ipset-exclude-user.txt",
+            "list-general-user.txt",
+            "list-exclude-user.txt",
+        ] {
+            assert!(mgr.lists_dir().join(name).exists(), "missing {name}");
+        }
+        // Idempotent + non-destructive: a pre-existing file is preserved.
+        let general_user = mgr.lists_dir().join("list-general-user.txt");
+        std::fs::write(&general_user, "mydomain.example\n").unwrap();
+        mgr.ensure_user_lists().unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&general_user).unwrap(),
+            "mydomain.example\n"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn install_uses_dummy_game_port_when_disabled() {
+        // Regression: a disabled game filter must render the dummy port `12`,
+        // never an empty value that would make winws.exe reject its args.
+        let mgr = ZapretManager::new(std::env::temp_dir().join("tandem-gf-disabled"));
+        let strategy = "start \"z\" /min \"%BIN%winws.exe\" --wf-tcp=80,443,%GameFilterTCP% --filter-tcp=%GameFilterTCP% --dpi-desync=fake";
+        let bin_path = mgr
+            .build_bin_path(strategy, &GameFilter::disabled())
+            .unwrap();
+        assert!(bin_path.contains("--wf-tcp=80,443,12"), "got: {bin_path}");
+        assert!(bin_path.contains("--filter-tcp=12"), "got: {bin_path}");
+        assert!(
+            !bin_path.contains("--filter-tcp= "),
+            "empty filter value: {bin_path}"
+        );
     }
 
     #[test]
