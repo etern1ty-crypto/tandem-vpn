@@ -10,9 +10,25 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use tandem_core::engine::{self, EngineStatus};
+use tandem_core::engine::{self, EngineStatus, RouteInputs};
 use tandem_core::sys::RealSys;
+use tandem_core::warp::WarpManager;
 use tandem_core::EngineManager;
+
+/// Seed list of RU-throttled-but-not-blocked foreign services routed
+/// through WARP. This is a starting point, not the final routing-rule
+/// design (Phase 4 replaces it with the full domestic/throttled/blocked
+/// bucket system).
+const WARP_DOMAIN_SUFFIXES: &[&str] = &[
+    ".youtube.com",
+    ".googlevideo.com",
+    ".ytimg.com",
+    ".discord.com",
+    ".discordapp.com",
+    ".discord.gg",
+    ".github.com",
+    ".githubusercontent.com",
+];
 
 /// Shared application state: the active engine install directory.
 pub struct AppState {
@@ -22,6 +38,10 @@ pub struct AppState {
 impl AppState {
     fn manager(&self) -> EngineManager {
         EngineManager::new(self.install_dir.lock().unwrap().clone())
+    }
+
+    fn warp_manager(&self) -> WarpManager {
+        WarpManager::new(self.install_dir.lock().unwrap().join("warp"))
     }
 }
 
@@ -81,13 +101,28 @@ fn get_engine_status(state: tauri::State<AppState>) -> CmdResult<EngineStatus> {
     state.manager().status(&RealSys).map_err(err)
 }
 
-/// Install the engine with a `direct`-only config (no WARP/Goida outbounds
-/// wired up yet — added in later phases) and start it as a Windows service.
+/// Install the engine and start it as a Windows service. If a WARP profile
+/// has already been generated (via [`warp_register`]), its endpoint is
+/// wired in with a rule sending the seed RU-throttled-domain list through
+/// it; otherwise the config is `direct`-only. Goida outbounds/rules and the
+/// full routing-bucket system are added in later phases.
 #[tauri::command]
 fn install_engine(state: tauri::State<AppState>) -> CmdResult<()> {
     engine::ensure_windows().map_err(err)?;
     let mgr = state.manager();
-    let config = mgr.render_config(&[], &[]);
+    let warp = state.warp_manager();
+
+    let mut inputs = RouteInputs::default();
+    if warp.profile_generated() {
+        let endpoint = warp.render_endpoint("warp").map_err(err)?;
+        inputs.endpoints.push(endpoint);
+        inputs.rules.push(serde_json::json!({
+            "domain_suffix": WARP_DOMAIN_SUFFIXES,
+            "outbound": "warp"
+        }));
+    }
+
+    let config = mgr.render_config(&inputs);
     mgr.write_config(&config).map_err(err)?;
     mgr.install_service(&RealSys).map_err(err)
 }
@@ -96,6 +131,83 @@ fn install_engine(state: tauri::State<AppState>) -> CmdResult<()> {
 fn remove_engine(state: tauri::State<AppState>) -> CmdResult<()> {
     engine::ensure_windows().map_err(err)?;
     state.manager().remove_service(&RealSys).map_err(err)
+}
+
+#[derive(Serialize)]
+pub struct WarpStatus {
+    wgcf_present: bool,
+    registered: bool,
+    profile_generated: bool,
+}
+
+#[tauri::command]
+fn warp_status(state: tauri::State<AppState>) -> CmdResult<WarpStatus> {
+    let warp = state.warp_manager();
+    Ok(WarpStatus {
+        wgcf_present: warp.wgcf_present(),
+        registered: warp.registered(),
+        profile_generated: warp.profile_generated(),
+    })
+}
+
+/// Register a free WARP account and generate its WireGuard profile in one
+/// step. Re-running the engine install (`install_engine`) afterwards is
+/// what actually wires the resulting endpoint into the live config.
+#[tauri::command]
+fn warp_register(state: tauri::State<AppState>) -> CmdResult<()> {
+    engine::ensure_windows().map_err(err)?;
+    let warp = state.warp_manager();
+    warp.register(&RealSys).map_err(err)?;
+    warp.generate_profile(&RealSys).map_err(err)
+}
+
+/// Download the latest `wgcf` Windows release (a plain, unzipped `.exe`
+/// asset — unlike sing-box's zipped releases).
+#[tauri::command]
+fn download_wgcf_release(state: tauri::State<AppState>) -> CmdResult<()> {
+    let resp = ureq::get("https://api.github.com/repos/ViRb3/wgcf/releases/latest")
+        .set("User-Agent", "tandem-vpn")
+        .timeout(Duration::from_secs(10))
+        .call()
+        .map_err(err)?
+        .into_string()
+        .map_err(err)?;
+
+    let release: serde_json::Value = serde_json::from_str(&resp).map_err(err)?;
+    let assets = release["assets"]
+        .as_array()
+        .ok_or_else(|| err("No assets found in release"))?;
+
+    let mut exe_url = None;
+    for asset in assets {
+        if let Some(name) = asset["name"].as_str() {
+            let lower = name.to_lowercase();
+            if lower.contains("windows") && lower.contains("amd64") && lower.ends_with(".exe") {
+                exe_url = asset["browser_download_url"]
+                    .as_str()
+                    .map(|s| s.to_string());
+                break;
+            }
+        }
+    }
+    let exe_url =
+        exe_url.ok_or_else(|| err("No windows-amd64 exe asset found in latest release"))?;
+
+    let exe_resp = ureq::get(&exe_url)
+        .set("User-Agent", "tandem-vpn")
+        .timeout(Duration::from_secs(60))
+        .call()
+        .map_err(err)?;
+
+    let mut buf = Vec::new();
+    let mut reader = exe_resp.into_reader();
+    std::io::Read::read_to_end(&mut reader, &mut buf).map_err(err)?;
+
+    let warp = state.warp_manager();
+    std::fs::create_dir_all(warp.install_dir()).map_err(err)?;
+    std::fs::write(warp.wgcf_path(), buf).map_err(err)?;
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -147,7 +259,13 @@ fn download_singbox_release(state: tauri::State<AppState>) -> CmdResult<()> {
     for asset in assets {
         if let Some(name) = asset["name"].as_str() {
             let lower = name.to_lowercase();
-            if lower.contains("windows") && lower.contains("amd64") && lower.ends_with(".zip") {
+            // Releases also ship a `-legacy-windows-7` amd64 zip; skip it so
+            // this doesn't nondeterministically pick whichever comes first.
+            if lower.contains("windows")
+                && lower.contains("amd64")
+                && lower.ends_with(".zip")
+                && !lower.contains("legacy")
+            {
                 zip_url = asset["browser_download_url"]
                     .as_str()
                     .map(|s| s.to_string());
@@ -192,6 +310,9 @@ pub fn run() {
             remove_engine,
             run_tests,
             download_singbox_release,
+            warp_status,
+            warp_register,
+            download_wgcf_release,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tandem-vpn");

@@ -29,6 +29,22 @@ pub struct EngineStatus {
     pub binary_present: bool,
 }
 
+/// Outbounds/endpoints/rules assembled by callers (the `warp` and `goida`
+/// modules) and handed to [`EngineManager::render_config`]. Kept as one
+/// struct so adding a new source (e.g. Goida's many per-config outbounds)
+/// doesn't grow `render_config`'s parameter list.
+#[derive(Debug, Clone, Default)]
+pub struct RouteInputs {
+    /// Entries for the top-level `outbounds` array (`direct` is added
+    /// automatically and must not be included here).
+    pub outbounds: Vec<Value>,
+    /// Entries for the top-level `endpoints` array (e.g. a WARP `wireguard`
+    /// endpoint). Endpoint tags are valid `route.rules[].outbound` targets.
+    pub endpoints: Vec<Value>,
+    /// Entries for `route.rules`.
+    pub rules: Vec<Value>,
+}
+
 /// Manages a single sing-box installation directory (binary + config).
 pub struct EngineManager {
     install_dir: PathBuf,
@@ -58,15 +74,21 @@ impl EngineManager {
     }
 
     /// Build the sing-box config: a TUN inbound capturing all system
-    /// traffic, `direct` plus any caller-supplied outbounds, and
+    /// traffic, `direct` plus any caller-supplied outbounds/endpoints, and
     /// caller-supplied routing rules.
     ///
     /// `route.final = "direct"` is load-bearing: it's what keeps games and
     /// any traffic not matched by a rule on the zero-extra-hop direct path
     /// by default, rather than accidentally tunneling everything.
-    pub fn render_config(&self, extra_outbounds: &[Value], rules: &[Value]) -> Value {
+    ///
+    /// Endpoints (e.g. a WARP `wireguard` endpoint from [`crate::warp`]) are
+    /// a separate top-level array from `outbounds`, but their tags are valid
+    /// `route.rules[].outbound` targets just like a regular outbound —
+    /// verified against the real `sing-box check` (1.13.14), since the docs
+    /// alone don't state this explicitly.
+    pub fn render_config(&self, inputs: &RouteInputs) -> Value {
         let mut outbounds = vec![json!({ "type": "direct", "tag": "direct" })];
-        outbounds.extend(extra_outbounds.iter().cloned());
+        outbounds.extend(inputs.outbounds.iter().cloned());
 
         json!({
             "log": { "level": "info", "timestamp": true },
@@ -83,11 +105,12 @@ impl EngineManager {
                 "strict_route": true,
                 "stack": "mixed"
             }],
+            "endpoints": inputs.endpoints,
             "outbounds": outbounds,
             "route": {
                 "auto_detect_interface": true,
                 "final": "direct",
-                "rules": rules
+                "rules": inputs.rules
             }
         })
     }
@@ -195,23 +218,31 @@ mod tests {
     #[test]
     fn render_config_defaults_to_direct_final() {
         let mgr = temp_manager("render");
-        let cfg = mgr.render_config(&[], &[]);
+        let cfg = mgr.render_config(&RouteInputs::default());
         assert_eq!(cfg["route"]["final"], "direct");
         let outbounds = cfg["outbounds"].as_array().unwrap();
         assert_eq!(outbounds.len(), 1);
         assert_eq!(outbounds[0]["type"], "direct");
         assert_eq!(cfg["inbounds"][0]["type"], "tun");
+        assert!(cfg["endpoints"].as_array().unwrap().is_empty());
     }
 
     #[test]
-    fn render_config_appends_extra_outbounds_and_rules() {
+    fn render_config_appends_endpoints_outbounds_and_rules() {
         let mgr = temp_manager("extra");
-        let warp = json!({ "type": "wireguard", "tag": "warp" });
+        let warp_endpoint = json!({ "type": "wireguard", "tag": "warp" });
+        let goida_outbound = json!({ "type": "vless", "tag": "goida-1" });
         let rule = json!({ "domain_suffix": [".youtube.com"], "outbound": "warp" });
-        let cfg = mgr.render_config(&[warp], &[rule]);
+        let inputs = RouteInputs {
+            outbounds: vec![goida_outbound],
+            endpoints: vec![warp_endpoint],
+            rules: vec![rule],
+        };
+        let cfg = mgr.render_config(&inputs);
         let outbounds = cfg["outbounds"].as_array().unwrap();
         assert_eq!(outbounds.len(), 2);
-        assert_eq!(outbounds[1]["tag"], "warp");
+        assert_eq!(outbounds[1]["tag"], "goida-1");
+        assert_eq!(cfg["endpoints"][0]["tag"], "warp");
         assert_eq!(cfg["route"]["rules"][0]["outbound"], "warp");
         // direct must still be present and final, even with extra outbounds.
         assert_eq!(cfg["route"]["final"], "direct");
@@ -220,7 +251,7 @@ mod tests {
     #[test]
     fn write_config_round_trips() {
         let mgr = temp_manager("write");
-        let cfg = mgr.render_config(&[], &[]);
+        let cfg = mgr.render_config(&RouteInputs::default());
         mgr.write_config(&cfg).unwrap();
         let read_back: Value =
             serde_json::from_str(&std::fs::read_to_string(mgr.config_path()).unwrap()).unwrap();

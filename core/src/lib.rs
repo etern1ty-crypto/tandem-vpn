@@ -10,13 +10,16 @@
 //! * [`sys`] — a thin abstraction over process execution so command planning
 //!   can be unit-tested without a Windows host.
 //! * [`engine`] — sing-box process/service lifecycle and config generation.
+//! * [`warp`] — free Cloudflare WARP account registration (via `wgcf`) and
+//!   rendering the resulting WireGuard profile into a sing-box endpoint.
 //! * [`hosts`] — idempotent hosts-file merging.
 
 pub mod engine;
 pub mod hosts;
 pub mod sys;
+pub mod warp;
 
-pub use engine::{EngineManager, EngineStatus};
+pub use engine::{EngineManager, EngineStatus, RouteInputs};
 pub use sys::ServiceState;
 
 /// Crate-wide error type.
