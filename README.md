@@ -1,93 +1,124 @@
+<div align="center">
+
 # tandem-vpn ⟁
+
+### Unblock YouTube, Discord & Telegram on Windows — one click, no server, no subscription.
+
+A desktop GUI that drives the best open-source DPI-bypass engines (**Zapret / Flowseal**) for you.
+No `.bat` files, no command line, no config archaeology. Download, click once, done.
 
 [![Rust CI](https://github.com/etern1ty-crypto/tandem-vpn/actions/workflows/release.yml/badge.svg)](https://github.com/etern1ty-crypto/tandem-vpn/actions/workflows/release.yml)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![OS: Windows](https://img.shields.io/badge/OS-Windows_11-blue?logo=windows)](https://microsoft.com)
+[![OS: Windows 10/11](https://img.shields.io/badge/OS-Windows_10%2F11-0078D6?logo=windows)](https://microsoft.com)
+[![Download](https://img.shields.io/github/v/release/etern1ty-crypto/tandem-vpn?label=Download&color=3ddc97)](https://github.com/etern1ty-crypto/tandem-vpn/releases/latest)
+[![Русский](https://img.shields.io/badge/README-Русский-red)](README.ru.md)
 
-«Ультимативный» локальный обходной тандем для Windows — **без собственного сервера**.
+![tandem-vpn — one-click DPI bypass](docs/media/hero.gif)
 
-Удобный графический интерфейс (GUI) для управления популярными средствами обхода DPI (в первую очередь **Zapret / Flowseal**). Больше не нужно вручную качать скрипты, распаковывать архивы и разбираться с командной строкой.
-
----
-
-## ⚡ Быстрый старт (За 3 шага)
-
-1. **Скачать** последнюю версию со страницы [Releases](https://github.com/etern1ty-crypto/tandem-vpn/releases). Установите и запустите приложение (потребуются права Администратора).
-2. Нажмите кнопку **"Скачать и установить Zapret"**. Приложение само скачает последнюю актуальную версию Flowseal и правильно ее распакует.
-3. Выберите нужную стратегию из выпадающего списка и нажмите **"Установить в автозапуск"**.
-   - *Опционально:* Нажмите **"Обновить Hosts-файл"** для фикса веб-версии Telegram и голосовых чатов Discord.
-
-**Готово!** Теперь все заблокированные ресурсы должны открываться без проблем.
+</div>
 
 ---
 
-## 🆚 Почему tandem-vpn, а не ручной Zapret?
+## Why this exists
 
-| Функция | Обычный Zapret (.bat файлы) | tandem-vpn |
-|---------|-----------------------------|------------|
-| **Установка** | Ручная распаковка, поиск нужных папок | Нажатие одной кнопки |
-| **Обновления** | Качать заново, удалять старое, ставить новое | Автоматическая проверка и загрузка |
-| **Интерфейс** | Консоль Windows, `service.bat` | Удобное GUI-приложение |
-| **Hosts файл** | Ручное редактирование системных файлов | Идемпотентное слияние по клику |
-| **Диагностика** | Разбираться в логах консоли | Наглядные статусы всех служб |
+Tools like Zapret work brilliantly — but they ship as a folder of `.bat` files you have to
+download, unzip, pick the right strategy from, and manage from a console. Most people bounce
+before it ever works.
+
+**tandem-vpn is the missing GUI.** Everything `service.bat` does, in a window with buttons and
+live status. No backend of ours sits between you and the internet — the bypass runs **entirely
+on your machine.**
+
+| | Manual Zapret (`.bat`) | **tandem-vpn** |
+|---|---|---|
+| Install | Unzip, hunt for the right folder | **One button** |
+| Updates | Re-download, delete old, replace | **Auto check & fetch** |
+| Interface | Windows console, `service.bat` menu | **Native GUI** |
+| Hosts file | Hand-edit system files | **Idempotent merge, one click** |
+| Diagnostics | Read console logs | **Live status for every service** |
 
 ---
 
-## 🛠️ Функционал (Фаза 1: Zapret)
+## ⚡ Quick start (3 steps)
 
-- **Полное управление службой**: установка выбранной стратегии в автозапуск, удаление служб.
-- **Интеграция с Flowseal**: загрузка свежих версий, IPSet-списков прямо из интерфейса.
-- **Обновление hosts**: автоматизированное слияние с `C:\Windows\System32\drivers\etc\hosts` для обхода ограничений специфичных сервисов (Discord Voice).
-- **Диагностика**: проверка BFE, наличия драйвера `.sys`, работы `winws.exe` и возможных конфликтов.
-- **Тесты доступности**: автоматическая проверка доступности целевых сайтов (YouTube, Discord и др.).
+1. **[Download the latest release](https://github.com/etern1ty-crypto/tandem-vpn/releases/latest)**, then run it as Administrator.
+2. Click **“Download & install Zapret”** — it fetches the current Flowseal build and unpacks it correctly.
+3. Pick a strategy from the dropdown and hit **“Install to autostart.”**
+   - *Optional:* click **“Update hosts file”** to fix Telegram Web and Discord voice.
 
-## 🗺️ Roadmap (План развития)
+**Done.** Blocked resources should now open normally.
 
-| Фаза | Движок | Что делает |
-|------|--------|------------|
-| **1 (Завершено)** | **Zapret (Flowseal)** | Обход DPI на уровне пакетов (WinDivert). Все функции `service.bat` в GUI. |
-| 2 (В разработке) | **Cloudflare WARP** (`usque`) | Локальный SOCKS/HTTP-прокси через edge-сеть Cloudflare. |
-| 3 (В планах) | **Goida (AvenCores)** | Тянет публичные конфиги с GitHub, чистит мусор, спид-тестит, оставляет топ-N. |
+![Main window](docs/media/screenshot-main.png)
 
-> **Нет главного сервера.** Приложение ничего не хостит: zapret работает локально, WARP идёт в сеть Cloudflare, конфиги обновляются прямым запросом к GitHub. Никакого нашего бэкенда или телеметрии.
+---
+
+## 🛡️ “My antivirus flagged it / Windows warned me” — read this
+
+This is expected, and here’s the honest why:
+
+- tandem-vpn loads the **WinDivert kernel driver** and edits your **hosts file** to steer packets.
+  That’s the same low-level behavior real malware uses, so heuristic AV and **SmartScreen** flag
+  *any* tool in this category (including Zapret itself).
+- We ship **no telemetry and no backend.** The Zapret payload is downloaded straight from
+  [Flowseal’s official releases](https://github.com/Flowseal/zapret-discord-youtube/releases) at runtime.
+- **Verify it yourself:** every release lists SHA-256 checksums and a
+  [VirusTotal](https://www.virustotal.com/) link. Full source is here (GPL-3.0); CI builds are public.
+
+If SmartScreen appears: **More info → Run anyway.** To stop AV quarantining the driver, add the
+install folder to exclusions.
+
+---
+
+## 🛠️ Features (Phase 1 — Zapret)
+
+- **Full service control** — install any strategy to autostart, remove cleanly (service + WinDivert).
+- **Flowseal integration** — fetch the latest builds and IPSet lists from inside the app.
+- **Hosts management** — idempotent merge into `drivers\etc\hosts` for Discord voice & Telegram Web.
+- **Diagnostics** — checks BFE, the `.sys` driver, `winws.exe`, and common conflicts.
+- **Connectivity tests** — one click to verify YouTube / Discord / Telegram actually open.
+
+## 🗺️ Roadmap
+
+| Phase | Engine | What it does |
+|---|---|---|
+| **1 — Done** | **Zapret (Flowseal)** | Packet-level DPI bypass (WinDivert). Full `service.bat` feature set in a GUI. |
+| 2 — In progress | **Cloudflare WARP** (`usque`) | Local SOCKS/HTTP proxy over Cloudflare’s edge. |
+| 3 — Planned | **Goida (AvenCores)** | Pulls public configs from GitHub, dedupes, speed-tests, keeps the top N. |
+
+> **No central server.** Zapret runs locally, WARP goes to Cloudflare, configs come straight from
+> GitHub. Nothing of ours in the middle, no telemetry.
 
 ---
 
 ## ❓ FAQ
 
-**Q: Почему требуется запуск от имени Администратора?**
-A: Zapret использует драйвер ядра `WinDivert` для работы с сетевыми пакетами на низком уровне, а обновление файла `hosts` требует системных привилегий.
+**Why Administrator rights?** WinDivert is a kernel driver and editing `hosts` needs system privileges.
 
-**Q: Антивирус ругается на файл, что делать?**
-A: Так как программа модифицирует системные настройки сети и использует драйвер WinDivert, некоторые антивирусы могут ошибочно реагировать на нее (False Positive). Добавьте папку с программой в исключения.
+**A game / anti-cheat broke.** Toggle Zapret off (“Remove services”) while playing, or enable **Game Filter**.
 
-**Q: Перестали работать некоторые игры, например с античитами.**
-A: Отключите Zapret (кнопка "Удалить службы") на время игры или убедитесь, что включен параметр **Game Filter**.
+**Is this a VPN?** No traffic is routed through us. Phase 1 is a local DPI-bypass; it doesn’t hide your
+IP. It’s about *reachability*, not anonymity.
 
 ---
 
-## 💻 Для разработчиков
+## 💻 Building from source
 
-Требования: Rust (stable), Node 18+, и для Windows-сборки — WebView2.
+Requirements: Rust (stable), Node 18+, and WebView2 for Windows builds.
 
 ```bash
-# Фронтенд
-cd app && npm install && npm run build
-
-# Проверка/тесты ядра (кроссплатформенно)
-cargo test -p tandem-core
-
-# Запуск десктоп-приложения (нужен установленный tauri-cli: cargo install tauri-cli)
-cd app && cargo tauri dev
+cd app && npm install && npm run build     # frontend
+cargo test -p tandem-core                  # core tests (cross-platform)
+cd app && cargo tauri dev                  # run the app (needs: cargo install tauri-cli)
 ```
 
-Вся Windows-специфика изолирована за абстракцией `Sys`, поэтому планирование команд тестируется на любой ОС. 
+Windows specifics are isolated behind the `Sys` abstraction, so command planning is unit-tested on
+any OS. Contributions welcome — see the [open issues](https://github.com/etern1ty-crypto/tandem-vpn/issues).
 
-### Участие в разработке
-Если вы хотите помочь развитию проекта, пожалуйста, ознакомьтесь с открытыми Issues или создайте новый через наши [шаблоны багов и фича-реквестов](https://github.com/etern1ty-crypto/tandem-vpn/issues/new/choose).
+## 📄 License & credits
 
-## 📄 Лицензия
+GPL-3.0-or-later. Built on the excellent work of
+[Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) and
+[AvenCores/goida-vpn-configs](https://github.com/AvenCores/goida-vpn-configs).
 
-GPL-3.0-or-later. Проект использует наработки замечательного сообщества:
-* [Flowseal/zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube)
-* [AvenCores/goida-vpn-configs](https://github.com/AvenCores/goida-vpn-configs)
+> tandem-vpn is a tool for accessing lawful information and defeating network censorship.
+> Use it in accordance with your local laws.
