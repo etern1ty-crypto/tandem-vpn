@@ -68,7 +68,9 @@ impl AppState {
         };
 
         if let Some(tag) = warp_tag {
-            inputs.endpoints.push(warp.render_endpoint(tag).map_err(err)?);
+            inputs
+                .endpoints
+                .push(warp.render_endpoint(tag).map_err(err)?);
         }
 
         let overrides = self.override_store().load().map_err(err)?;
@@ -464,7 +466,10 @@ fn rules_set_override(
 }
 
 #[tauri::command]
-fn rules_remove_override(state: tauri::State<AppState>, domain: String) -> CmdResult<Vec<Override>> {
+fn rules_remove_override(
+    state: tauri::State<AppState>,
+    domain: String,
+) -> CmdResult<Vec<Override>> {
     state.override_store().remove(&domain).map_err(err)
 }
 
