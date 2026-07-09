@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tandem-vpn</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">⟁</span>
+        <div>
+          <h1>tandem-vpn</h1>
+          <p class="sub">Умный роутинг: direct · WARP · Goida</p>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="engine">Движок</button>
+        <button class="tab" data-tab="warp">WARP</button>
+        <button class="tab" data-tab="goida">Goida</button>
+        <button class="tab" data-tab="rules">Правила</button>
+      </nav>
+    </header>
+
+    <!-- Движок -->
+    <main id="engine" class="panel active">
+      <section class="card">
+        <div class="card-head">
+          <h2>Состояние движка</h2>
+          <button id="engine-refresh" class="ghost">Обновить</button>
+        </div>
+        <div class="status-grid">
+          <div class="stat"><span class="label">Служба</span><span id="st-service" class="val">—</span></div>
+          <div class="stat"><span class="label">sing-box</span><span id="st-singbox" class="val">—</span></div>
+          <div class="stat"><span class="label">Бинарник</span><span id="st-binary" class="val">—</span></div>
+          <div class="stat"><span class="label">Активный сервер</span><span id="st-active" class="val muted">—</span></div>
+        </div>
+        <p class="hint">Движок работает как служба Windows и через TUN-интерфейс маршрутизирует трафик:
+          заблокированные РКН-домены — через WARP, домены, блокирующие РФ — через Goida, остальное — напрямую.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Управление</h2></div>
+        <div class="actions wrap">
+          <button id="engine-download" class="primary">Скачать sing-box</button>
+          <button id="engine-start" class="primary">Запустить движок</button>
+          <button id="engine-stop" class="danger">Остановить</button>
+        </div>
+        <p class="hint">«Запустить движок» устанавливает и стартует службу с текущей конфигурацией
+          (WARP и выбранный Goida-сервер подхватываются автоматически). Требуются права администратора.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Проверка доступности</h2>
+          <button id="engine-test" class="ghost">Запустить тест</button>
+        </div>
+        <div id="target-results" class="target-list"></div>
+      </section>
+    </main>
+
+    <!-- WARP -->
+    <main id="warp" class="panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Cloudflare WARP</h2>
+          <button id="warp-refresh" class="ghost">Обновить</button>
+        </div>
+        <div class="status-grid three">
+          <div class="stat"><span class="label">wgcf</span><span id="wp-wgcf" class="val">—</span></div>
+          <div class="stat"><span class="label">Аккаунт</span><span id="wp-account" class="val">—</span></div>
+          <div class="stat"><span class="label">Профиль</span><span id="wp-profile" class="val">—</span></div>
+        </div>
+        <div class="actions wrap">
+          <button id="warp-download" class="primary">Скачать wgcf</button>
+          <button id="warp-register" class="primary">Создать WARP-аккаунт</button>
+        </div>
+        <p class="hint">WARP даёт бесплатный туннель Cloudflare для сервисов, которые РФ замедляет, но не блокирует.
+          После создания аккаунта нажмите «Запустить движок» на вкладке «Движок», чтобы применить.</p>
+      </section>
+    </main>
+
+    <!-- Goida -->
+    <main id="goida" class="panel">
+      <section class="card">
+        <div class="card-head"><h2>Подписка Goida</h2></div>
+        <label class="field">
+          <span>Ссылка на список конфигов (VLESS / Trojan / Shadowsocks)</span>
+          <input type="text" id="goida-url"
+            value="https://github.com/AvenCores/goida-vpn-configs/raw/refs/heads/main/githubmirror/1.txt" />
+        </label>
+        <div class="actions wrap">
+          <button id="goida-load" class="primary">Загрузить список</button>
+          <button id="goida-test" class="primary" disabled>Тестировать</button>
+          <span id="goida-count" class="pill muted">конфиги не загружены</span>
+        </div>
+        <div id="goida-progress" class="progress hidden">
+          <div class="progress-bar"><span id="goida-progress-fill"></span></div>
+          <span id="goida-progress-text" class="muted"></span>
+        </div>
+        <p class="hint">При тесте движок временно поднимается без активной маршрутизации, каждый сервер проверяется
+          пингом через Clash API, «мусор» с задержкой ≥ 200 мс отсекается, а выжившие группируются по странам ниже.</p>
+      </section>
+
+      <section class="card" id="goida-results-card" hidden>
+        <div class="card-head"><h2>Рабочие серверы</h2></div>
+        <div id="goida-results"></div>
+      </section>
+    </main>
+
+    <!-- Правила -->
+    <main id="rules" class="panel">
+      <section class="card">
+        <div class="card-head">
+          <h2>Списки блокировок</h2>
+          <button id="rules-refresh-community" class="ghost">Обновить список РФ-блокировок</button>
+        </div>
+        <p class="hint">Список доменов, блокирующих доступ из РФ (для маршрута через Goida), берётся из
+          сообщества Re-filter-lists. РКН-блокировки для WARP подгружаются движком автоматически.</p>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Персональные правила</h2></div>
+        <div class="row">
+          <label class="field">
+            <span>Домен (суффикс, напр. example.com)</span>
+            <input type="text" id="override-domain" placeholder="example.com" />
+          </label>
+          <label class="field inline">
+            <span>Маршрут</span>
+            <select id="override-bucket">
+              <option value="direct">direct</option>
+              <option value="warp">warp</option>
+              <option value="goida">goida</option>
+            </select>
+          </label>
+          <div class="actions">
+            <button id="override-add" class="primary">Добавить</button>
+          </div>
+        </div>
+        <div id="override-list" class="override-list"></div>
+      </section>
+    </main>
+
+    <!-- Лог (виден всегда) -->
+    <footer class="log-footer">
+      <div class="card">
+        <div class="card-head">
+          <h2>Лог</h2>
+          <div class="actions">
+            <span id="install-dir" class="pill muted" title="Папка установки движка"></span>
+            <button id="clear-log" class="ghost">Очистить</button>
+          </div>
+        </div>
+        <pre id="log" class="log"></pre>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+[package]
+name = "tandem-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Cross-platform core logic for the tandem-vpn GUI (sing-box routing engine, WARP/Goida config generation)."
+
+[lib]
+name = "tandem_core"
+path = "src/lib.rs"
+
+[dependencies]
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+url = "2"

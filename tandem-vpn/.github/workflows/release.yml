@@ -1,0 +1,102 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ "main" ]
+  # Allow kicking off a release build by hand from the Actions tab.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create (e.g. v0.2.0). Leave blank to only build artifacts."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------- CI gate
+  test:
+    name: Lint & Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
+          rustflags: ""
+
+      - name: Install frontend dependencies
+        working-directory: ./app
+        run: npm install
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Test core
+        run: cargo test -p tandem-core
+
+  # ------------------------------------------------------------- Release job
+  # Runs for pushed `v*` tags and for manual dispatches that supply a tag.
+  release:
+    name: Build & Release (Windows)
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          rustflags: ""
+
+      - name: Install frontend dependencies
+        working-directory: ./app
+        run: npm install
+
+      - name: Build and create release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Use the pushed tag as-is (e.g. `v0.2.0`), or the manually supplied
+          # one. No more `tandem-vpn-vX` double-prefixed tags.
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag }}
+          releaseName: "tandem-vpn ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || inputs.tag }}"
+          releaseBody: |
+            ## tandem-vpn — умный роутинг direct · WARP · Goida
+
+            Скачайте установщик для Windows ниже (`.msi` или `.exe` — NSIS), запустите
+            от имени администратора и следуйте README.
+
+            Движок: sing-box (TUN). WARP через Cloudflare, Goida через публичные
+            подписки VLESS/Trojan/Shadowsocks, остальной трафик — напрямую.
+          releaseDraft: false
+          prerelease: false
+          projectPath: ./app
+          # Build both the MSI (WiX) and the NSIS `.exe` installer.
+          args: --bundles msi,nsis
