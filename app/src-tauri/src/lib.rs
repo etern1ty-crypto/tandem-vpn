@@ -378,31 +378,51 @@ fn goida_test_all(state: tauri::State<AppState>) -> CmdResult<Vec<GoidaTestResul
     // Give the service + Clash API a moment to come up after (re)install.
     std::thread::sleep(Duration::from_millis(1500));
 
-    let mut results = Vec::new();
-    for cfg in &configs {
-        let url = format!(
-            "http://{CLASH_API_ADDR}/proxies/{}/delay?timeout=5000&url={}",
-            urlencode(&cfg.tag),
-            urlencode(GOIDA_TEST_URL)
-        );
-        let delay_ms = ureq::get(&url)
-            .timeout(Duration::from_secs(6))
-            .call()
-            .ok()
-            .and_then(|resp| resp.into_json::<serde_json::Value>().ok())
-            .and_then(|v| v["delay"].as_u64())
-            .map(|d| d as u32);
+    // Run delay tests **in parallel**. All candidates are present as outbounds
+    // in the temporary test config, so concurrent queries to the Clash API
+    // are safe and bring the wall time from minutes down to ~6 seconds.
+    let handles: Vec<_> = configs
+        .iter()
+        .map(|cfg| {
+            let tag = cfg.tag.clone();
+            let remark = cfg.remark.clone();
+            let country_code = cfg.country_code.clone();
+            let country_flag = cfg.country_flag.clone();
+            let url = format!(
+                "http://{CLASH_API_ADDR}/proxies/{}/delay?timeout=5000&url={}",
+                urlencode(&tag),
+                urlencode(GOIDA_TEST_URL)
+            );
+            std::thread::spawn(move || {
+                let delay_ms = ureq::get(&url)
+                    .timeout(Duration::from_secs(6))
+                    .call()
+                    .ok()
+                    .and_then(|resp| resp.into_json::<serde_json::Value>().ok())
+                    .and_then(|v| v["delay"].as_u64())
+                    .map(|d| d as u32);
 
-        if let Some(delay_ms) = delay_ms {
-            if delay_ms < GOIDA_MAX_DELAY_MS {
-                results.push(GoidaTestResult {
-                    tag: cfg.tag.clone(),
-                    remark: cfg.remark.clone(),
-                    country_code: cfg.country_code.clone(),
-                    country_flag: cfg.country_flag.clone(),
-                    delay_ms,
-                });
-            }
+                delay_ms.and_then(|d| {
+                    if d < GOIDA_MAX_DELAY_MS {
+                        Some(GoidaTestResult {
+                            tag,
+                            remark,
+                            country_code,
+                            country_flag,
+                            delay_ms: d,
+                        })
+                    } else {
+                        None
+                    }
+                })
+            })
+        })
+        .collect();
+
+    let mut results = Vec::new();
+    for handle in handles {
+        if let Some(r) = handle.join().ok().flatten() {
+            results.push(r);
         }
     }
     Ok(results)
