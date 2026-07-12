@@ -341,6 +341,14 @@ function wire() {
         refreshWarp();
       } catch (err) {
         log(`Ошибка регистрации WARP: ${err}`);
+        // On failure, run the dry-run diagnose so the raw Cloudflare
+        // status+body (e.g. a live 1020 firewall block) lands in the log.
+        try {
+          const report = await invoke("warp_diagnose");
+          log(report);
+        } catch (diagErr) {
+          log(`Диагностика WARP недоступна: ${diagErr}`);
+        }
       }
     });
 
