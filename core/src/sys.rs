@@ -96,6 +96,26 @@ impl CmdOutput {
 /// Abstraction over command execution.
 pub trait Sys {
     fn run(&self, cmd: &PlannedCommand) -> crate::Result<CmdOutput>;
+
+    /// Like [`run`](Sys::run) but treats a non-zero exit as an error. `run`
+    /// itself returns `Ok` for *any* exit code (it only fails when the process
+    /// can't be spawned), which silently hides tool failures — e.g. a failed
+    /// `wgcf register` looked like success. Use this for commands whose success
+    /// matters; keep plain `run` for idempotent cleanup where a non-zero code
+    /// ("already removed") is fine. The error carries the full command line,
+    /// exit code and captured stderr for diagnostics.
+    fn run_checked(&self, cmd: &PlannedCommand) -> crate::Result<CmdOutput> {
+        let output = self.run(cmd)?;
+        if !output.success() {
+            return Err(crate::Error::Other(format!(
+                "command `{}` failed (code {:?}): {}",
+                cmd.display(),
+                output.code,
+                output.stderr.trim()
+            )));
+        }
+        Ok(output)
+    }
 }
 
 /// Executes commands for real via [`std::process::Command`].
@@ -179,5 +199,27 @@ mod tests {
             parse_schtasks_state(missing, Some(1)),
             ServiceState::NotInstalled
         );
+    }
+
+    #[test]
+    fn run_checked_errors_on_nonzero_exit() {
+        let sys = MockSys::with(|_| CmdOutput {
+            code: Some(1),
+            stderr: "boom".to_string(),
+            ..Default::default()
+        });
+        let cmd = PlannedCommand::new("wgcf", ["register"]);
+        let err = sys.run_checked(&cmd).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("wgcf register"), "missing cmd: {msg}");
+        assert!(msg.contains("boom"), "missing stderr: {msg}");
+    }
+
+    #[test]
+    fn run_checked_ok_on_success() {
+        let sys = MockSys::ok();
+        assert!(sys
+            .run_checked(&PlannedCommand::new("wgcf", ["register"]))
+            .is_ok());
     }
 }

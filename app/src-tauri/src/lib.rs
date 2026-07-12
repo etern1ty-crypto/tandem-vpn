@@ -273,6 +273,71 @@ fn warp_register(state: tauri::State<AppState>) -> CmdResult<()> {
     warp.write_profile(&profile, &raw).map_err(err)
 }
 
+/// Dry-run the WARP registration POST and return a full human-readable report
+/// — HTTP status and raw body **even on failure** — without writing any files.
+///
+/// `warp_register` collapses a non-2xx into a terse error; the failure we most
+/// need eyes on (Cloudflare's `403 error 1020` firewall block when TLS 1.3 is
+/// negotiated instead of wgcf's pinned TLS 1.2) is only legible from the raw
+/// status+body. This surfaces exactly that so a live failure is diagnosable
+/// rather than silent — the diagnostic backbone carried over from the
+/// pinned-wgcf approach, adapted to the native flow.
+#[tauri::command]
+fn warp_diagnose() -> CmdResult<String> {
+    use tandem_core::warp::native;
+
+    let keypair = native::generate_keypair().map_err(err)?;
+    let tos = native::rfc3339_utc(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(err)?
+            .as_secs(),
+    );
+    let body = native::build_register_body(&keypair.public_key, "PC", &tos);
+
+    let mut r = String::new();
+    r.push_str("=== WARP registration diagnose (dry run, no files written) ===\n");
+    r.push_str(&format!("POST {}\n", native::register_url()));
+    r.push_str(&format!(
+        "CF-Client-Version: {}  User-Agent: {}\n",
+        native::CF_CLIENT_VERSION,
+        native::USER_AGENT
+    ));
+    r.push_str(&format!("public_key: {}\n\n", keypair.public_key));
+
+    let outcome = ureq::post(&native::register_url())
+        .set("User-Agent", native::USER_AGENT)
+        .set("CF-Client-Version", native::CF_CLIENT_VERSION)
+        .set("Content-Type", "application/json")
+        .set("Accept", "application/json")
+        .timeout(Duration::from_secs(20))
+        .send_json(body);
+
+    match outcome {
+        Ok(resp) => {
+            r.push_str(&format!("HTTP {} OK\n", resp.status()));
+            let raw = resp.into_string().unwrap_or_default();
+            r.push_str("--- body ---\n");
+            r.push_str(&raw.chars().take(1200).collect::<String>());
+        }
+        // Non-2xx still carries the response body — this is where a 1020
+        // firewall block or a stale-client-version rejection shows up.
+        Err(ureq::Error::Status(code, resp)) => {
+            r.push_str(&format!("HTTP {code} (error status)\n"));
+            let raw = resp.into_string().unwrap_or_default();
+            r.push_str("--- body ---\n");
+            r.push_str(&raw.chars().take(1200).collect::<String>());
+            if raw.contains("1020") || code == 403 {
+                r.push_str("\n\n>>> Looks like Cloudflare error 1020 (firewall). Fix: pin rustls to TLS 1.2 in warp_register/warp_diagnose (see the ponytail note).");
+            }
+        }
+        Err(e) => {
+            r.push_str(&format!("transport error (no HTTP response): {e}\n"));
+        }
+    }
+    Ok(r)
+}
+
 /// Download the latest `wgcf` Windows release (a plain, unzipped `.exe`
 /// asset — unlike sing-box's zipped releases).
 #[tauri::command]
@@ -852,6 +917,7 @@ pub fn run() {
             download_singbox_release,
             warp_status,
             warp_register,
+            warp_diagnose,
             download_wgcf_release,
             goida_fetch_list,
             goida_test_all,
