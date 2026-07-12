@@ -227,14 +227,50 @@ fn warp_status(state: tauri::State<AppState>) -> CmdResult<WarpStatus> {
 }
 
 /// Register a free WARP account and generate its WireGuard profile in one
-/// step. Re-running the engine install (`install_engine`) afterwards is
-/// what actually wires the resulting endpoint into the live config.
+/// step, natively (no `wgcf.exe`): generate an X25519 keypair, POST it to
+/// Cloudflare's device API, parse the response into a `WgProfile`, and write
+/// `wgcf-profile.conf`. Re-running the engine install (`install_engine`)
+/// afterwards is what actually wires the resulting endpoint into the live
+/// config.
+///
+/// Request shape/version/headers mirror ViRb3/wgcf (see
+/// `tandem_core::warp::native`). The HTTP POST lives here so `core` stays
+/// offline; the pure keygen/body/parse/render logic lives in `core`.
 #[tauri::command]
 fn warp_register(state: tauri::State<AppState>) -> CmdResult<()> {
-    engine::ensure_windows().map_err(err)?;
+    use tandem_core::warp::native;
+
     let warp = state.warp_manager();
-    warp.register(&RealSys).map_err(err)?;
-    warp.generate_profile(&RealSys).map_err(err)
+    let keypair = native::generate_keypair().map_err(err)?;
+
+    let tos = native::rfc3339_utc(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(err)?
+            .as_secs(),
+    );
+    let body = native::build_register_body(&keypair.public_key, "PC", &tos);
+
+    // ponytail: ureq+rustls negotiates TLS 1.3; wgcf defensively pins TLS 1.2
+    // max to dodge Cloudflare's `403 error 1020` firewall block. If live
+    // registration returns 1020, pin a rustls ClientConfig to TLS 1.2 here.
+    let resp = ureq::post(&native::register_url())
+        .set("User-Agent", native::USER_AGENT)
+        .set("CF-Client-Version", native::CF_CLIENT_VERSION)
+        .set("Content-Type", "application/json")
+        .set("Accept", "application/json")
+        .timeout(Duration::from_secs(20))
+        .send_json(body)
+        .map_err(|e| format!("WARP registration request failed: {e}"))?;
+
+    let raw = resp
+        .into_string()
+        .map_err(|e| format!("could not read WARP registration response: {e}"))?;
+    let parsed: serde_json::Value = serde_json::from_str(&raw)
+        .map_err(|e| format!("WARP registration returned non-JSON response: {e}"))?;
+
+    let profile = native::profile_from_response(&parsed, &keypair.private_key).map_err(err)?;
+    warp.write_profile(&profile, &raw).map_err(err)
 }
 
 /// Download the latest `wgcf` Windows release (a plain, unzipped `.exe`

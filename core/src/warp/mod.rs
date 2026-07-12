@@ -1,23 +1,23 @@
-//! WARP integration: registers a free Cloudflare WARP account via the
-//! `wgcf` CLI ([ViRb3/wgcf](https://github.com/ViRb3/wgcf)) and renders the
+//! WARP integration: registers a free Cloudflare WARP account and renders the
 //! resulting WireGuard profile into a sing-box `wireguard` endpoint.
 //!
-//! We shell out to `wgcf` rather than reimplementing Cloudflare's
-//! registration API ourselves — same pattern as driving `sing-box` (and
-//! previously `winws.exe`) as a proven external binary instead of
-//! reimplementing protocol-level networking in Rust. Exact command shape
-//! (`register --accept-tos --config <path>`, `generate --config <path>
-//! --profile <path>`) and the generated profile format (`[Interface]`
-//! PrivateKey/Address/DNS/MTU, `[Peer]` PublicKey/AllowedIPs/Endpoint, no
-//! reserved-bytes field) are taken directly from wgcf's own source
-//! (`cmd/register`, `cmd/generate`, `wireguard/profile.go`), not guessed.
+//! Registration is done **natively in Rust** ([`native`]) against Cloudflare's
+//! device API, mirroring ViRb3/wgcf's request shape/version/headers — we no
+//! longer shell out to `wgcf.exe` (which failed silently: the app logged
+//! "account created" but no profile appeared). The pure parts (keygen,
+//! request-body construction, response parsing, profile rendering) live in
+//! [`native`]; the single registration POST lives in the Tauri layer so `core`
+//! stays offline. The profile is still written to `wgcf-profile.conf` in the
+//! exact `[Interface]`/`[Peer]` shape wgcf's `generate` produced, so the
+//! downstream `render_endpoint`/diagnostics paths are unchanged.
 
-use crate::sys::{PlannedCommand, Sys};
+pub mod native;
+
 use crate::{Error, Result};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
-/// Manages a single WARP (`wgcf`) installation directory.
+/// Manages a single WARP installation directory.
 pub struct WarpManager {
     install_dir: PathBuf,
 }
@@ -52,36 +52,17 @@ impl WarpManager {
         self.profile_path().exists()
     }
 
-    /// Register a new free WARP account, accepting Cloudflare's ToS
-    /// non-interactively via `--accept-tos` (mirrors ticking the box in the
-    /// official 1.1.1.1 app). Writes `wgcf-account.toml`.
-    pub fn register<S: Sys>(&self, sys: &S) -> Result<()> {
+    /// Persist a natively-registered profile: writes the WireGuard `.conf`
+    /// (`wgcf-profile.conf`, so `render_endpoint`/diagnostics are unchanged)
+    /// plus a small account marker (`wgcf-account.toml`) so [`registered`]
+    /// reports true. `account_marker` is the raw registration response the
+    /// caller obtained from Cloudflare (stored for diagnostics/debugging).
+    ///
+    /// [`registered`]: WarpManager::registered
+    pub fn write_profile(&self, profile: &WgProfile, account_marker: &str) -> Result<()> {
         std::fs::create_dir_all(&self.install_dir)?;
-        sys.run(&PlannedCommand::new(
-            self.wgcf_path().to_string_lossy().into_owned(),
-            [
-                "register".to_string(),
-                "--accept-tos".to_string(),
-                "--config".to_string(),
-                self.account_path().to_string_lossy().into_owned(),
-            ],
-        ))?;
-        Ok(())
-    }
-
-    /// Generate the WireGuard profile from the registered account. Writes
-    /// `wgcf-profile.conf`.
-    pub fn generate_profile<S: Sys>(&self, sys: &S) -> Result<()> {
-        sys.run(&PlannedCommand::new(
-            self.wgcf_path().to_string_lossy().into_owned(),
-            [
-                "generate".to_string(),
-                "--config".to_string(),
-                self.account_path().to_string_lossy().into_owned(),
-                "--profile".to_string(),
-                self.profile_path().to_string_lossy().into_owned(),
-            ],
-        ))?;
+        std::fs::write(self.profile_path(), native::render_wg_conf(profile))?;
+        std::fs::write(self.account_path(), account_marker)?;
         Ok(())
     }
 
@@ -176,7 +157,6 @@ pub fn parse_wg_profile(contents: &str) -> Option<WgProfile> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sys::MockSys;
 
     // Exact shape wgcf's `wireguard/profile.go` template produces.
     const SAMPLE_PROFILE: &str = "[Interface]\nPrivateKey = aGVsbG8td29ybGQtcHJpdmF0ZS1rZXk=\nAddress = 172.16.0.2/32, 2606:4700:110:8a36:df01:4433:4c1b:1b/128\nDNS = 1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001\nMTU = 1280\n[Peer]\nPublicKey = YnFjTFF1dGxpbmVQdWJsaWNLZXlIZXJl=\nAllowedIPs = 0.0.0.0/0, ::/0\nEndpoint = engage.cloudflareclient.com:2408\n";
@@ -219,29 +199,6 @@ mod tests {
     #[test]
     fn missing_required_field_returns_none() {
         assert!(parse_wg_profile("[Interface]\nAddress = 1.2.3.4/32\n").is_none());
-    }
-
-    #[test]
-    fn register_plans_expected_command() {
-        let mgr = temp_manager("register");
-        let sys = MockSys::ok();
-        mgr.register(&sys).unwrap();
-        let log = sys.log();
-        assert!(log
-            .iter()
-            .any(|c| c.contains("register") && c.contains("--accept-tos")));
-        let _ = std::fs::remove_dir_all(mgr.install_dir());
-    }
-
-    #[test]
-    fn generate_profile_plans_expected_command() {
-        let mgr = temp_manager("generate");
-        let sys = MockSys::ok();
-        mgr.generate_profile(&sys).unwrap();
-        let log = sys.log();
-        assert!(log
-            .iter()
-            .any(|c| c.contains("generate") && c.contains("wgcf-profile.conf")));
     }
 
     #[test]
