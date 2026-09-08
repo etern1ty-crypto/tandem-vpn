@@ -1,0 +1,326 @@
+{
+  "original_archive_sha256": "d3769683e58cf1a3dc5c8d6dfbda892fb40934b255608534eed62fddebb45e33",
+  "excluded": "build outputs, local browser artifacts, dependencies, and this generated inventory/checksum manifest itself",
+  "changes": [
+    {
+      "path": ".env.example",
+      "status": "added",
+      "sha256": "38455ff7bd5538330b104fca2ad561ad455f1819873b5ce930d96aad59425a7f"
+    },
+    {
+      "path": ".gitattributes",
+      "status": "added",
+      "sha256": "6ed5bc5d105b6698c239139efaafce30f13f253548dfd2803e599897a527ca28"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "status": "added",
+      "sha256": "b733129e1e2495792da33c43b3fa8dbfa274ee4dff5bdeab209555d0dccd25d5"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "status": "added",
+      "sha256": "7bf4f455cb13382826308c36601989e9606494edf50d3a2325d9eedb809cf8dc"
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "status": "modified",
+      "sha256": "8f1b5cc77adbb266e01ca6ce07e71907d701ae96615f6a7dcab80d65acba3121"
+    },
+    {
+      "path": ".gitignore",
+      "status": "modified",
+      "sha256": "10f40ca612b84ef47a3cf5476732d7510be78f0128a17100c4f6475a205a9747"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "status": "added",
+      "sha256": "30df9e9cc010dd4d59231d4227e76af7bdf368347d10554e442ab631fa9830e5"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "status": "added",
+      "sha256": "015f2412a5879909c87b143935d1ee787788a4e669e45052d4d52c01f52d4730"
+    },
+    {
+      "path": "Cargo.lock",
+      "status": "modified",
+      "sha256": "3436c59e0582da64819129f204553025363dee428ae922e8fb5679fbec60a83d"
+    },
+    {
+      "path": "Cargo.toml",
+      "status": "modified",
+      "sha256": "83cfbf8803676114f05dc0190637201f52eba95e87e471e8540630367bd35549"
+    },
+    {
+      "path": "README.md",
+      "status": "modified",
+      "sha256": "c9dc252b93e9150463566296ce461ea996f095de2abae7fa28817ab6a45c1731"
+    },
+    {
+      "path": "SECURITY.md",
+      "status": "added",
+      "sha256": "275c6082831fcba698ede06c165d74b2093b2bbb70dd0bd8fa058e7d5f397c31"
+    },
+    {
+      "path": "app/index.html",
+      "status": "modified",
+      "sha256": "e901e66e91f2d0ee5403c70f174afcbc7251e0fd5f493a43940d5600693dbf50"
+    },
+    {
+      "path": "app/package-lock.json",
+      "status": "modified",
+      "sha256": "7ef9f6df99090b59ec251f71d8248b48ee96584b22a0d0dca4236eb8efe04b65"
+    },
+    {
+      "path": "app/package.json",
+      "status": "modified",
+      "sha256": "8df17b85a09503a0c69cb43e32be698aaea333e8ac9fba98cb22e2bddecee553"
+    },
+    {
+      "path": "app/scripts/build.mjs",
+      "status": "added",
+      "sha256": "c9ee5538480d96c1c058d0f344785c0fc590b1421b7cd65a7690642ed5acb466"
+    },
+    {
+      "path": "app/scripts/check.mjs",
+      "status": "added",
+      "sha256": "363689bf1807b6c3bf90eb889bceefb7035fbb99368e2cce0b26e066fcd971c2"
+    },
+    {
+      "path": "app/scripts/dev.mjs",
+      "status": "added",
+      "sha256": "59d39f4a4da169597898bd9a5d1faf0bf5536cf536bdeced20ac93dffb8d234e"
+    },
+    {
+      "path": "app/src-tauri/Cargo.toml",
+      "status": "modified",
+      "sha256": "f0e6ae95d1307a1485c93f166adaf202d9d69ea0d5dde655da8b73d33934f076"
+    },
+    {
+      "path": "app/src-tauri/capabilities/default.json",
+      "status": "modified",
+      "sha256": "130dd52194b22fb51f16553a6817129e4c3c9a33b3f87eb1373e7895dc4ffa4d"
+    },
+    {
+      "path": "app/src-tauri/src/lib.rs",
+      "status": "modified",
+      "sha256": "84e49bb0452be819e1249efff36580095d5b28cf67bc11ec74d29c92705b3c72"
+    },
+    {
+      "path": "app/src-tauri/tauri.conf.json",
+      "status": "modified",
+      "sha256": "980151a353ccb28034d36c36e10a900f0d79efd6066ed555b5654d379eab4cc4"
+    },
+    {
+      "path": "app/src/main.js",
+      "status": "modified",
+      "sha256": "7e008d59030be2b0f07f3fe173101681e66b236b10c51ef41d7eef42358bcaf2"
+    },
+    {
+      "path": "app/src/styles.css",
+      "status": "modified",
+      "sha256": "9f4800fa07b2037aac54d84399cd26a1d7a88c353500feaec46f535e374d796c"
+    },
+    {
+      "path": "app/src/ui-state.js",
+      "status": "added",
+      "sha256": "332c0059de42d2dfd57596886f9245b7ae10f869dddfba0d1b785cffba1e56bd"
+    },
+    {
+      "path": "app/tests/build.test.mjs",
+      "status": "added",
+      "sha256": "47ea30ceda09347369ca740b5d694db267288c8cc1958db18474f5b7d917fc90"
+    },
+    {
+      "path": "app/tests/ui.test.mjs",
+      "status": "added",
+      "sha256": "a3a7a53487f42e4d20912462958cd6ff1e94b8504b947cff899ff972287b1d18"
+    },
+    {
+      "path": "app/vite.config.js",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "config.example.json",
+      "status": "added",
+      "sha256": "6a55fca6dac52c8d3be8c2564d299cdf5fb64d2d083c8b5d99ba61e1cc7e3157"
+    },
+    {
+      "path": "core/Cargo.toml",
+      "status": "modified",
+      "sha256": "4f0b6404dd77e4653d7bc705dd9f596981a4bd5a979642dfe63faf3da839f61e"
+    },
+    {
+      "path": "core/src/bin/tandem.rs",
+      "status": "added",
+      "sha256": "d3d1139f6e717240e7ac4be8d1ac0995a0f25f0bb4d36d94aa150b5b363979c8"
+    },
+    {
+      "path": "core/src/bundle.rs",
+      "status": "added",
+      "sha256": "862a5ff8a5ec70fc177817dd6ac20c30c8ee7cae29bee956969999fbd6085beb"
+    },
+    {
+      "path": "core/src/config.rs",
+      "status": "added",
+      "sha256": "d4cdc6dfb57f67379b38a62f0d932f6ebc1180d1461000bbd9300a34def4e148"
+    },
+    {
+      "path": "core/src/files.rs",
+      "status": "added",
+      "sha256": "588f11a3d98bddd6ba4c2892017ae55dc2e6a38543bd0eca79f447f9d973f26e"
+    },
+    {
+      "path": "core/src/hosts.rs",
+      "status": "modified",
+      "sha256": "4605101e6990782799d9a0a3ff129b27f20f49fed5621b300221d46efbfebd73"
+    },
+    {
+      "path": "core/src/lib.rs",
+      "status": "modified",
+      "sha256": "f4df02aa258fa3c56af84ed7585d9d58364491d1e2661d3bb4b28ab0ac0934e0"
+    },
+    {
+      "path": "core/src/network.rs",
+      "status": "added",
+      "sha256": "ab5eaa3cbf337092c7e8e91a77105511c64e7b83a1f7777faacc564809a9cf75"
+    },
+    {
+      "path": "core/src/platform.rs",
+      "status": "added",
+      "sha256": "7692d7353e70eb36c23a259563c0d671e4d21f30dbc8c62f87251eaebf9a141f"
+    },
+    {
+      "path": "core/src/service.rs",
+      "status": "added",
+      "sha256": "981bbe1176bf27b89017d4e4a76e448490cb17a4890fa78cc9dad197ef28e3ed"
+    },
+    {
+      "path": "core/src/sys.rs",
+      "status": "modified",
+      "sha256": "cd8021d31c2873e2599a31febf0e5dcade4bf65c0fa8b3a740db161b4cdf7880"
+    },
+    {
+      "path": "core/src/workbench.rs",
+      "status": "added",
+      "sha256": "113bfab053bf5214be7438ee6f23451c6ee935398e313c5abe118e6412ba7a3c"
+    },
+    {
+      "path": "core/src/zapret/mod.rs",
+      "status": "modified",
+      "sha256": "d08270db80a7e4d65c5ed2ce29bae831e45d8c859babc9e712002ae411dfd28e"
+    },
+    {
+      "path": "core/src/zapret/strategy.rs",
+      "status": "modified",
+      "sha256": "91572c1042ce6a68dd482bac256314a7b126057bbf9c5eae180e7009ddc7c937"
+    },
+    {
+      "path": "docs/API.md",
+      "status": "added",
+      "sha256": "65ebc704d9398c800505a75d8e9a2e8e950d384b78e971106ba35f7e1be7f0f9"
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "status": "added",
+      "sha256": "e61b2afe5c56cdf4258dc5b5b3abbb55f44e515966aafbb4111767d09f8e0290"
+    },
+    {
+      "path": "docs/AUDIT.md",
+      "status": "added",
+      "sha256": "219817e2968d8a67287bfab870a19a72b9f601fc29e7ed2b345461a9dbc1ae8d"
+    },
+    {
+      "path": "docs/CONFIGURATION.md",
+      "status": "added",
+      "sha256": "b3044f18892525a23b47b52fda47ac3ac28d3fe74926b1aa4cfe17d6078ddf06"
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "status": "added",
+      "sha256": "a12b651ef55476a75e9abd18bec137b125b00085934f09010ce5aa54206e8f63"
+    },
+    {
+      "path": "docs/PRODUCT.md",
+      "status": "added",
+      "sha256": "02b4e7c9005a0f505d8bd6e0968a2b19d2f977cf58800d5d598474a16bf6bd8b"
+    },
+    {
+      "path": "docs/SECURITY.md",
+      "status": "added",
+      "sha256": "c154a01f4ffc7f7bbd4646d36048b8d299dd382a85f051a4a00ba8240daa1f90"
+    },
+    {
+      "path": "docs/TROUBLESHOOTING.md",
+      "status": "added",
+      "sha256": "af27a7403fd8fcd121d033926b1477a7631d5a6712f57ca961fe6fd797ac9bab"
+    },
+    {
+      "path": "docs/VERIFICATION.md",
+      "status": "added",
+      "sha256": "5a532283a5cc01455510a869ba7c18b26d7d152935fdc0907e5273bb642cda84"
+    },
+    {
+      "path": "docs/assets/preview.html",
+      "status": "added",
+      "sha256": "354d772fc9958a88e203e55eb85fd3604e58aeb5d1471800eef04ecae3be7ac7"
+    },
+    {
+      "path": "fixtures/general.bat",
+      "status": "added",
+      "sha256": "625960032f3ba1e143d1f87099ed121e09cbe9278947b80c744db67acc01a4e2"
+    },
+    {
+      "path": "jobs.json",
+      "status": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "status": "added",
+      "sha256": "f32338bdcf61d8100b7125baa6a4822dfb41c81c8299489df0475436c6218f7a"
+    },
+    {
+      "path": "scripts/verify_repository.py",
+      "status": "added",
+      "sha256": "4f4be8aaa1d3d71d498d36444911547e9c71d8e4088cacab27526ccf1435d8bd"
+    },
+    {
+      "path": "verification/README.md",
+      "status": "added",
+      "sha256": "bdca6b4d0efe863fb7d4824294b7584e812373a18574305e6a2a96657fad0694"
+    },
+    {
+      "path": "verification/audit-findings.json",
+      "status": "added",
+      "sha256": "a5b88dbf055098bef16e1f45408f44819189cc93099066cb5c1d1f1560eb1936"
+    },
+    {
+      "path": "verification/browser-results.json",
+      "status": "added",
+      "sha256": "a167b6309ce9ab206907554f6a52257cc921e2db1d185537effac7f2d0932f95"
+    },
+    {
+      "path": "verification/browser.mjs",
+      "status": "added",
+      "sha256": "8d3fa122517da014f342cce9ce1f03f4885c306de4f21a189003ec5c7ae19422"
+    },
+    {
+      "path": "verification/contrast-results.json",
+      "status": "added",
+      "sha256": "a54779ac23bf1928f4e654a968b927253de163e2d562e6d4ef2a343f80eee567"
+    },
+    {
+      "path": "verification/frontend-checks.log",
+      "status": "added",
+      "sha256": "c2cfbaf219a41e5918ae446b5618d38099793d56ea73f45955b56794fa683144"
+    },
+    {
+      "path": "verification/local-checks.json",
+      "status": "added",
+      "sha256": "5c3c6aeb4d48381788b2c7258ae1dc71df45f3ea0a3604df7bdba65784f511cc"
+    }
+  ]
+}

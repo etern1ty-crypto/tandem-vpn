@@ -2,9 +2,10 @@
 name = "tandem-app"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "tandem-vpn desktop GUI (Tauri)."
+description = "Tandem Workbench desktop application."
 default-run = "tandem-app"
 
 [lib]
@@ -17,17 +18,13 @@ name = "tandem-app"
 path = "src/main.rs"
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "=2.6.2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-shell = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+tauri = { version = "=2.11.2", features = [] }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
 tandem-core = { path = "../../core" }
-ureq = { version = "2", features = ["tls"] }
-zip-extract = "0.1"
 
 [features]
-# Used by `tauri dev`/`tauri build` integrations.
 custom-protocol = ["tauri/custom-protocol"]

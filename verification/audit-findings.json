@@ -1,0 +1,344 @@
+[
+  {
+    "id": "A01",
+    "severity": "P0",
+    "original_location": "core/src/zapret/mod.rs:158–165; app/src-tauri/src/lib.rs:78–80",
+    "finding": "Service executable could be selected from an arbitrary writable directory",
+    "implementation": "Fixed protected known-folder root; owner/DACL/reparse checks; no directory setter",
+    "current_module": "platform.rs; workbench.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A02",
+    "severity": "P0",
+    "original_location": "app/src-tauri/src/lib.rs:207–250",
+    "finding": "Unpinned first ZIP asset, unbounded download and direct overwrite of active engine",
+    "implementation": "Mandatory approved SHA, asset policy, bounds, staging, service-absent gate and recovery",
+    "current_module": "network.rs; bundle.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A03",
+    "severity": "P0",
+    "original_location": "app/src-tauri/src/lib.rs:255–266; core/src/hosts.rs:42–57",
+    "finding": "Unvalidated remote hosts mappings applied with privileged write",
+    "implementation": "Local reviewed import, domain/public-IP validation, backup and conflict-aware restore",
+    "current_module": "hosts.rs; workbench.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A04",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:169–175,188–231",
+    "finding": "Nonzero command exit codes ignored; success reported after failed creation/start",
+    "implementation": "Checked exit codes and native observed state; no unconditional success",
+    "current_module": "sys.rs; service.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A05",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:234–242",
+    "finding": "Global winws process kill and shared WinDivert removal affected other products",
+    "implementation": "Own-service-only removal; no taskkill or shared-driver delete",
+    "current_module": "service.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A06",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:188–210",
+    "finding": "Delete/create/start without transition wait, rollback or ownership checks",
+    "implementation": "Journaled service lifecycle and bounded state transitions",
+    "current_module": "service.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A07",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:79–107",
+    "finding": "Localized text parsing and nonzero errors classified as not installed",
+    "implementation": "SCM numeric API; only error 1060 means absence",
+    "current_module": "platform.rs; service.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A08",
+    "severity": "P1",
+    "original_location": "app/src-tauri/src/lib.rs:66–266",
+    "finding": "Blocking process/HTTP calls executed in synchronous desktop handlers",
+    "implementation": "spawn_blocking; typed action; bounded work and close-after-completion",
+    "current_module": "app/src-tauri/src/lib.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A09",
+    "severity": "P1",
+    "original_location": "app/src-tauri/src/lib.rs:17–25,78–80",
+    "finding": "Mutex unwrap panic and mutable unvalidated installation root",
+    "implementation": "No mutable directory mutex; disk config and fixed root",
+    "current_module": "workbench.rs; platform.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A10",
+    "severity": "P1",
+    "original_location": "app/src/main.js:103–209; app/src-tauri/src/lib.rs",
+    "finding": "Parallel clicks/processes could race service/files/downloads",
+    "implementation": "UI gate, backend busy guard, cross-process file lock",
+    "current_module": "ui-state.js; files.rs; desktop bridge",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A11",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:397–417",
+    "finding": "none/any destroyed loaded IPSet; loaded did not restore original",
+    "implementation": "Separate source/active lists; journaled settings; mode-preserving import",
+    "current_module": "zapret/mod.rs; workbench.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A12",
+    "severity": "P1",
+    "original_location": "core/src/hosts.rs:18–57",
+    "finding": "Unbalanced markers could discard unmanaged content; truncate write had no backup",
+    "implementation": "Reject malformed markers; atomic replacement and persistent recovery point",
+    "current_module": "hosts.rs; files.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A13",
+    "severity": "P1",
+    "original_location": "app/src-tauri/src/lib.rs:104–113",
+    "finding": "Strategy filename accepted traversal outside installation",
+    "implementation": "Single safe component, installed strategy membership, link/file validation",
+    "current_module": "zapret/mod.rs; files.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A14",
+    "severity": "P1",
+    "original_location": "core/src/zapret/strategy.rs:101–115",
+    "finding": "First textual winws occurrence could be a comment or ambiguous invocation",
+    "implementation": "Constrained invocation parser; comments ignored; exactly one command",
+    "current_module": "zapret/strategy.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A15",
+    "severity": "P1",
+    "original_location": "core/src/zapret/strategy.rs:134–152",
+    "finding": "Unresolved variables, quoting, ports and file references unvalidated",
+    "implementation": "Typed argument tokens, Windows quoting, flags/ports/files policy",
+    "current_module": "zapret/strategy.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A16",
+    "severity": "P1",
+    "original_location": "core/src/zapret/strategy.rs:55–75; tests:203–205",
+    "finding": "Disabled game filter expanded to empty values and malformed port sets",
+    "implementation": "Actual upstream disabled sentinel 12 and explicit tcp/udp/all modes",
+    "current_module": "config.rs; zapret/strategy.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A17",
+    "severity": "P1",
+    "original_location": "app/src-tauri/tauri.conf.json:24–26; capabilities/default.json:5–9",
+    "finding": "CSP disabled and unnecessary shell capability enabled",
+    "implementation": "Local CSP, main-window capability only, shell plugin removed",
+    "current_module": "tauri.conf.json; capabilities/default.json",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A18",
+    "severity": "P1",
+    "original_location": "core/src/zapret/mod.rs:421–435; app/src-tauri/src/lib.rs:179–205",
+    "finding": "Unbounded configurable targets and unrestricted URL/DNS/redirect behavior",
+    "implementation": "12-target HTTPS public-DNS policy; bounded workers/timeouts; no probe redirects",
+    "current_module": "config.rs; network.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A19",
+    "severity": "P1",
+    "original_location": "core/src/sys.rs:70–77",
+    "finding": "PATH-dependent executables, unbounded waiting/output",
+    "implementation": "Known System32 sc.exe; timeout, reap, dual bounded output readers",
+    "current_module": "platform.rs; sys.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A20",
+    "severity": "P1",
+    "original_location": "app/package.json; app/package-lock.json",
+    "finding": "Lock omitted declared @tauri-apps/api and CLI dependencies",
+    "implementation": "Zero-dependency frontend and regenerated matching lock",
+    "current_module": "app/package.json; package-lock.json",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A21",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:363–369; app/src/main.js:132–135",
+    "finding": "Auto-update checkbox only wrote a flag; no startup check",
+    "implementation": "Opt-in startup release check, explicitly no automatic install",
+    "current_module": "Config; app/src/main.js",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A22",
+    "severity": "P2",
+    "original_location": "app/src/main.js:5,173–181",
+    "finding": "Hardcoded local Zapret version was never the installed version",
+    "implementation": "Read installed bundle manifest for release comparison",
+    "current_module": "bundle.rs; workbench.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A23",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:453–456",
+    "finding": "Any unequal version was described as an available upgrade",
+    "implementation": "Explicit different_release candidate; no invented semver ordering",
+    "current_module": "workbench.rs; API docs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A24",
+    "severity": "P2",
+    "original_location": "app/src-tauri/src/lib.rs:179–202",
+    "finding": "HTTP status lost for 403/404; transport and HTTP failures conflated",
+    "implementation": "reachable and http_ok separated, real status preserved",
+    "current_module": "network.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A25",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:139–153",
+    "finding": "Directory errors and entry errors silently hidden as no strategies",
+    "implementation": "Only NotFound becomes empty list; other errors propagate",
+    "current_module": "zapret/mod.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A26",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:259–270",
+    "finding": "Any .sys file counted as valid driver",
+    "implementation": "Specific WinDivert64.sys presence and staged PE sanity checks",
+    "current_module": "zapret/mod.rs; bundle.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A27",
+    "severity": "P2",
+    "original_location": "app/src-tauri/src/lib.rs:28–33",
+    "finding": "Fallback to working directory and no persistent global config",
+    "implementation": "Known folder and validated versioned config.json",
+    "current_module": "platform.rs; config.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A28",
+    "severity": "P2",
+    "original_location": "core/src/hosts.rs:62–135",
+    "finding": "Tests exercised a duplicate merge implementation instead of production code",
+    "implementation": "Tests call actual merge/apply/restore functions",
+    "current_module": "hosts.rs tests",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A29",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:545–557",
+    "finding": "Temporary test directory reused process ID, risked collisions",
+    "implementation": "Process ID plus atomic sequence isolated test directories",
+    "current_module": "files.rs tests",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A30",
+    "severity": "P2",
+    "original_location": "app/src/main.js:20–24",
+    "finding": "Unbounded UI log growth",
+    "implementation": "200-line ring-like retained history, plain text rendering",
+    "current_module": "ui-state.js",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A31",
+    "severity": "P2",
+    "original_location": "app/src/main.js:60–65,103–108",
+    "finding": "Empty strategy placeholder could be treated as a selected strategy",
+    "implementation": "Empty value plus selection validation and installed membership",
+    "current_module": "main.js; zapret/mod.rs",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A32",
+    "severity": "P2",
+    "original_location": "core/src/zapret/mod.rs:168–175,209",
+    "finding": "Global TCP timestamps changed unconditionally with no rollback",
+    "implementation": "Removed implicit global network change; requirement documented",
+    "current_module": "service.rs; TROUBLESHOOTING.md",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A33",
+    "severity": "P2",
+    "original_location": "app/src/main.js:14–15,179",
+    "finding": "Unreliable shell-global URL opening; unnecessary capability",
+    "implementation": "Release metadata displayed without shell-opening backend",
+    "current_module": "main.js; IPC capability",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A34",
+    "severity": "P2",
+    "original_location": ".github/workflows/release.yml:11–12,32,62,69–75",
+    "finding": "Overbroad write permission, npm install drift, wrong release tag and automatic publication",
+    "implementation": "Read-only CI defaults; scoped draft-only release after checks",
+    "current_module": "ci.yml; release.yml",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A35",
+    "severity": "P2",
+    "original_location": "README.md:20,38–50,61–62",
+    "finding": "Universal success, unfinished features and AV bypass advice",
+    "implementation": "Truthful product scope, security-first runbook, no blanket AV exclusions",
+    "current_module": "README.md; docs/",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A36",
+    "severity": "P2",
+    "original_location": "app/index.html:18–22; jobs.json",
+    "finding": "WARP/Goida placeholders and an empty unexplained jobs artifact",
+    "implementation": "Removed non-features/artifact rather than pretending to implement new VPN engines",
+    "current_module": "app/index.html; removed jobs.json",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A37",
+    "severity": "P2",
+    "original_location": "app/src/styles.css:144–146",
+    "finding": "Limited narrow-screen layout and no explicit focus/reduced-motion treatment",
+    "implementation": "Responsive stacked layouts, light/dark theme, focus states and 44px controls",
+    "current_module": "styles.css",
+    "status": "implemented; native verification pending where applicable"
+  },
+  {
+    "id": "A38",
+    "severity": "P2",
+    "original_location": "app/src-tauri/src/lib.rs; core/src/zapret/mod.rs",
+    "finding": "No redacted support export, backend audit trail or reusable CLI",
+    "implementation": "Shared typed actions, CLI, bounded audit and support report",
+    "current_module": "workbench.rs; core/src/bin/tandem.rs",
+    "status": "implemented; native verification pending where applicable"
+  }
+]

@@ -1,0 +1,65 @@
+{
+  "harness": "Playwright + local Chromium; simulated IPC only, not Windows service execution",
+  "checks": [
+    {
+      "name": "browser preview disables every backend action",
+      "status": "passed"
+    },
+    {
+      "name": "real frontend loads without JavaScript exceptions",
+      "status": "passed"
+    },
+    {
+      "name": "advanced operations expand correctly",
+      "status": "passed"
+    },
+    {
+      "name": "desktop has no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "name": "390px expanded layout has no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "name": "strategy names are rendered as text, not HTML",
+      "status": "passed"
+    },
+    {
+      "name": "destructive action requires explicit confirmation",
+      "status": "passed"
+    },
+    {
+      "name": "cancelled confirmation does not invoke backend",
+      "status": "passed"
+    },
+    {
+      "name": "confirmed service operation refreshes the true returned state",
+      "status": "passed"
+    },
+    {
+      "name": "backend errors remain visible and release the busy gate",
+      "status": "passed"
+    },
+    {
+      "name": "failed operation replaces stale success JSON",
+      "status": "passed"
+    },
+    {
+      "name": "requests disable competing controls",
+      "status": "passed"
+    },
+    {
+      "name": "JSON result download produces a real file",
+      "status": "passed"
+    },
+    {
+      "name": "confirmation dialog fits 390px viewport in dark mode",
+      "status": "passed"
+    },
+    {
+      "name": "interactive fixture generates no JavaScript exceptions",
+      "status": "passed"
+    }
+  ]
+}

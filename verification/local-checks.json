@@ -1,0 +1,56 @@
+{
+  "frontend": [
+    {
+      "command": "npm run check",
+      "exit_code": 0
+    },
+    {
+      "command": "npm test",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run build",
+      "exit_code": 0
+    }
+  ],
+  "node_tests": {
+    "passed": 12,
+    "failed": 0
+  },
+  "browser_checks": {
+    "passed": 15,
+    "failed": 0,
+    "ipc_simulated": true
+  },
+  "rust_tests": {
+    "authored": 44,
+    "executed": 0
+  },
+  "native_compilation": "not_run",
+  "cargo_advisory_scan": "not_run",
+  "license_preserved": true,
+  "visual_qa": {
+    "desktop": true,
+    "narrow_390": true,
+    "dark": true,
+    "error": true,
+    "confirmation": true
+  },
+  "environment": {
+    "node": "v24.14.1",
+    "chromium": "Google Chrome for Testing 153.0.8010.12"
+  },
+  "structural": {
+    "status": "passed",
+    "structural_check_count": 1931,
+    "rust_compilation_verified": false,
+    "advisory_scan_verified": false,
+    "frontend_external_packages": 0,
+    "cargo_package_count": 464
+  },
+  "palette_contrast": {
+    "passed": 20,
+    "minimum_observed": 5.21,
+    "full_wcag_audit": false
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "game_filter": "disabled",
+  "ipset_filter": "loaded",
+  "check_updates_on_start": false,
+  "request_timeout_secs": 8,
+  "targets": [
+    "https://www.youtube.com/",
+    "https://discord.com/",
+    "https://web.telegram.org/"
+  ],
+  "hosts_allowed_suffixes": [
+    "discord.com",
+    "discord.gg",
+    "discord.media",
+    "discordapp.net",
+    "web.telegram.org"
+  ]
+}
