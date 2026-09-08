@@ -16,7 +16,7 @@ name = "tandem"
 path = "src/bin/tandem.rs"
 
 [dependencies]
-serde = { version = "=1.0.228", features = ["derive"] }
+serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.150"
 thiserror = "=1.0.69"
 sha2 = "=0.10.9"
