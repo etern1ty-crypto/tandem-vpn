@@ -1,0 +1,41 @@
+$ npm run check
+
+> tandem-workbench-frontend@0.2.0 check
+> node scripts/check.mjs
+
+Syntax checked: 7 JavaScript modules.
+
+
+$ npm test
+
+> tandem-workbench-frontend@0.2.0 test
+> node --test
+
+✔ offline build copies every public file without remote resources (18.210314ms)
+✔ build refuses destructive destinations (0.542432ms)
+✔ preview serves only allowlisted files and protects localhost (29.441594ms)
+✔ trusted digest is mandatory and normalized (1.149693ms)
+✔ release tag cannot become a path (0.201784ms)
+✔ targets enforce HTTPS and unique normalized URLs (1.842742ms)
+✔ target count has a hard upper bound (0.206ms)
+✔ log is bounded and text remains inert (1.163954ms)
+✔ request gate rejects concurrent actions (0.407784ms)
+✔ failed requests release the gate (0.23221ms)
+✔ structured failures are displayed honestly (0.15355ms)
+✔ all native service states have labels (0.141317ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 206.660694
+
+
+$ npm run build
+
+> tandem-workbench-frontend@0.2.0 build
+> node scripts/build.mjs
+
+Built static frontend: 4 files, no npm dependencies, no CDN.

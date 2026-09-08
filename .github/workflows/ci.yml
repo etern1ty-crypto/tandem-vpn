@@ -1,0 +1,85 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/verify_repository.py
+      - run: npm ci --ignore-scripts --no-audit
+        working-directory: app
+      - run: npm run check && npm test && npm run build
+        working-directory: app
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Format and parse source candidate
+        run: cargo fmt --all
+      - run: cargo metadata --locked --format-version 1 > cargo-metadata.json
+      - run: cargo test --locked -p tandem-core --all-targets
+      - run: cargo clippy --locked -p tandem-core --all-targets -- -D clippy::correctness -D clippy::suspicious
+      - name: Preserve canonical formatting diff for review
+        if: always()
+        run: git diff --binary > rustfmt.patch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-source-review
+          path: |
+            rustfmt.patch
+            cargo-metadata.json
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: npm ci --ignore-scripts --no-audit
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+      - run: cargo fmt --all
+      - run: cargo test --locked --workspace --all-targets
+      - run: cargo clippy --locked --workspace --all-targets -- -D clippy::correctness -D clippy::suspicious
+      - run: cargo build --locked --release -p tandem-core --bin tandem
+      - name: Non-mutating CLI smoke checks
+        shell: pwsh
+        run: |
+          & .\target\release\tandem.exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\target\release\tandem.exe config-check config.example.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\target\release\tandem.exe inspect fixtures/general.bat
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\target\release\tandem.exe status
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit --deny warnings

@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Tandem Workbench — проверяемое управление Zapret на Windows." />
+    <title>Tandem Workbench</title>
+    <style>
+:root {
+  color-scheme: light dark;
+  --canvas: #f9f8f7; --surface: #fff; --soft: #f0efed; --text: #2c2c2b;
+  --muted: #65635f; --border: #dedcd8; --accent: #1766ad; --accent-soft: #e5f2fc;
+  --green: #257349; --red: #b23d38; --orange: #8d571d; --focus: #2783de;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--text); }
+button, input, select, textarea { font: inherit; }
+a { color: var(--accent); }
+button, input, select, textarea, summary { border-radius: 8px; }
+button { min-height: 44px; padding: 9px 16px; border: 1px solid var(--border); color: var(--text); background: var(--surface); cursor: pointer; font-weight: 600; }
+button:hover:not(:disabled) { background: var(--soft); border-color: var(--muted); }
+button:disabled { opacity: .52; cursor: not-allowed; }
+button.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+button.primary:hover:not(:disabled) { filter: brightness(.92); background: var(--accent); }
+button.quiet { background: transparent; }
+button.danger { color: var(--red); }
+button.small { font-size: 14px; padding: 8px 12px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.topbar { min-height: 88px; padding: 16px max(24px, calc((100vw - 1100px) / 2)); display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.brand { color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 12px; }
+.brand strong { display: block; font-size: 22px; line-height: 1.1; letter-spacing: -.7px; }
+.brand-sub { font-size: 14px; letter-spacing: 1.5px; color: var(--muted); }
+.brand-mark { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 8px; background: var(--accent); color: white; font-size: 30px; font-weight: 700; }
+.edition { color: var(--muted); font-size: 14px; }
+main { max-width: 1148px; margin: auto; padding: 40px 24px 24px; }
+.hero { display: flex; gap: 32px; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; }
+.hero > div:first-child { max-width: 680px; }
+.hero-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; padding-bottom: 8px; }
+h1 { font-size: clamp(28px, 3.1vw, 36px); line-height: 1.2; letter-spacing: -.9px; margin: 8px 0 16px; }
+h2 { font-size: 23px; line-height: 1.25; letter-spacing: -.35px; margin: 0; }
+p { margin: 0 0 16px; }
+p:last-child { margin-bottom: 0; }
+.eyebrow { margin: 0 0 12px; font-size: 14px; font-weight: 700; letter-spacing: 1.3px; color: var(--accent); }
+.lede { color: var(--muted); margin: 0; }
+.notice { padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; background: var(--surface); margin-bottom: 16px; }
+.notice.error { border-left-color: var(--red); color: var(--red); }
+.notice.success { border-left-color: var(--green); }
+.notice.subtle { background: var(--canvas); font-size: 14px; }
+.overview { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 16px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 20px; }
+.card-head h2 { min-width: 0; }
+.policy-card { background: var(--accent-soft); border-color: transparent; }
+.policy-card h2 { font-size: 28px; line-height: 1.2; margin-bottom: 16px; }
+.principles { margin: 0 0 20px; padding-left: 20px; }
+.principles li { padding: 2px 0; }
+.service-status { display: flex; gap: 12px; align-items: center; margin: 4px 0 12px; font-size: 26px; }
+.status-dot { width: 12px; height: 12px; flex-shrink: 0; border-radius: 50%; background: var(--muted); }
+.status-dot.running { background: var(--green); }
+.status-dot.error { background: var(--red); }
+.facts { margin: 24px 0 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.facts div { min-width: 0; }
+dt { font-size: 14px; color: var(--muted); }
+dd { margin: 4px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+.hint, .micro { color: var(--muted); font-size: 14px; }
+.micro { margin-top: 12px; max-width: 800px; }
+code, .mono, pre { font-family: Consolas, "SFMono-Regular", monospace; }
+code { font-size: 14px; overflow-wrap: anywhere; }
+.step-heading { display: flex; align-items: center; gap: 12px; }
+.step { background: var(--soft); color: var(--muted); min-width: 36px; height: 36px; display: grid; place-items: center; font-size: 14px; font-weight: 700; border-radius: 8px; }
+.tag { background: var(--soft); font-size: 14px; padding: 5px 10px; border-radius: 6px; color: var(--muted); }
+.form-grid { display: grid; gap: 16px; margin: 20px 0; }
+.bundle-grid { grid-template-columns: 1fr 2.1fr; }
+.settings-grid { grid-template-columns: 1fr 1fr 1.2fr; align-items: center; }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; margin-bottom: 16px; }
+.form-grid .field, .strategy-row .field { margin-bottom: 0; }
+.field > span { font-weight: 600; }
+.optional { font-weight: 400; color: var(--muted); }
+.wide { grid-column: 1 / -1; }
+input:not([type=checkbox]), select, textarea { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; background: var(--surface); color: var(--text); border: 1px solid var(--border); font-size: 16px; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; font-size: 14px; }
+textarea { resize: vertical; min-height: 90px; }
+input:disabled, select:disabled, textarea:disabled { color: var(--muted); background: var(--canvas); }
+.check-field { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 12px 0; font-size: 14px; cursor: pointer; }
+.check-field input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--accent); margin-top: 2px; }
+.check-field small { font-size: 14px; color: var(--muted); }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.strategy-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 12px; align-items: end; }
+.secondary-actions { margin: 16px 0; }
+.advanced { padding: 0; }
+summary { cursor: pointer; padding: 20px 24px; font-weight: 600; min-height: 64px; }
+.advanced-content { padding: 0 24px 24px; }
+.result, .log { margin: 0; padding: 16px; border: 1px solid var(--border); background: var(--canvas); border-radius: 8px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; overflow: auto; }
+.result { max-height: 400px; min-height: 96px; }
+.log { min-height: 100px; max-height: 230px; color: var(--muted); }
+footer { display: flex; justify-content: space-between; gap: 24px; padding: 16px 0; color: var(--muted); font-size: 14px; }
+dialog { max-width: 520px; width: calc(100% - 32px); padding: 28px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); }
+dialog::backdrop { background: rgb(0 0 0 / .4); }
+dialog h2 { margin-bottom: 16px; }
+dialog p { overflow-wrap: anywhere; }
+dialog .actions { margin-top: 24px; justify-content: flex-end; }
+[hidden] { display: none !important; }
+@media (prefers-color-scheme: dark) {
+  :root { --canvas:#191919; --surface:#202020; --soft:#30302e; --text:#fff; --muted:#b7b6b2; --border:#4b4a46; --accent:#8bbefa; --accent-soft:#233344; --green:#72bc8f; --red:#f18a84; --orange:#de9255; --focus:#8bbefa; }
+  button.primary, .brand-mark { color:#122133; }
+}
+@media (max-width: 920px) {
+  .hero { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .hero-actions { flex-direction: row; flex-wrap: wrap; padding: 0; }
+  .settings-grid { grid-template-columns: 1fr 1fr; }
+  .check-field { grid-column: 1 / -1; }
+  .strategy-row { grid-template-columns: 1fr 1fr; }
+  .strategy-row .field { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .topbar { padding: 16px; gap: 16px; align-items: flex-start; }
+  .edition { max-width: 125px; text-align: right; }
+  main { padding: 28px 16px 16px; }
+  .overview, .bundle-grid, .settings-grid { grid-template-columns: 1fr; }
+  .card { padding: 20px; }
+  .advanced { padding: 0; }
+  summary { padding: 20px; }
+  .advanced-content { padding: 0 20px 20px; }
+  .card-head { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .facts { grid-template-columns: 1fr 1fr; }
+  .actions > button { flex: 1 1 auto; }
+  .strategy-row { grid-template-columns: 1fr; }
+  .strategy-row > * { grid-column: 1 !important; }
+  footer { flex-direction: column; gap: 8px; }
+  h2 { font-size: 22px; }
+  .step-heading { align-items: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+</style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#main" aria-label="Tandem Workbench — главная">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span><strong>Tandem</strong><span class="brand-sub">WORKBENCH</span></span>
+      </a>
+      <span class="edition">Local-first · Windows x64 · 0.2.0</span>
+    </header>
+    <main id="main">
+      <section class="hero">
+        <div><p class="eyebrow">ПОДКЛЮЧЕНИЯ ПОД КОНТРОЛЕМ</p><h1>Проверить. Применить. Восстановить.</h1>
+          <p class="lede">Рабочее место IT-поддержки для Zapret. Без запуска batch-скриптов, скрытых обновлений и чужих служб.</p></div>
+        <div class="hero-actions"><button id="diagnostics" data-command>Диагностика</button><button id="support" data-command>Отчёт для поддержки</button></div>
+      </section>
+      <div id="environment" class="notice" role="status">Подключение к локальному приложению…</div>
+      <div id="feedback" class="notice" role="alert" hidden></div>
+      <div class="overview">
+        <section class="card service-card" aria-labelledby="service-heading">
+          <div class="card-head"><h2 id="service-heading">Служба Tandem</h2><button id="refresh" class="small" data-command>Обновить</button></div>
+          <div class="service-status"><span id="service-dot" class="status-dot" aria-hidden="true"></span><strong id="service-state">Не проверено</strong></div>
+          <p class="hint">Управляем только <code>tandem-zapret</code>. Общие драйверы WinDivert не удаляем.</p>
+          <dl class="facts"><div><dt>Пакет движка</dt><dd id="engine-version">—</dd></div><div><dt>Драйвер</dt><dd id="driver-state">—</dd></div><div><dt>Права</dt><dd id="admin-state">—</dd></div></dl>
+        </section>
+        <section class="card policy-card" aria-labelledby="policy-heading">
+          <p class="eyebrow">БЕЗОПАСНЫЙ РЕЖИМ РАБОТЫ</p><h2 id="policy-heading">Никакой магии.<br />Каждое изменение — явно.</h2>
+          <ul class="principles"><li>SHA-256 до распаковки</li><li>Журнал восстановления до изменения</li><li>Никакой телеметрии и облачного аккаунта</li></ul>
+          <p class="hint">Это не VPN: нет туннеля, смены IP или дополнительного шифрования.</p>
+        </section>
+      </div>
+      <section class="card" aria-labelledby="engine-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">01</span><h2 id="engine-heading">Проверяемый пакет</h2></div><button id="initialize" data-command data-admin>Подготовить каталог</button></div>
+        <p class="hint">Каталог данных: <code id="root-path">защищённый Program Files\TandemWorkbench</code>. Для замены пакета сначала удалите службу Tandem.</p>
+        <div class="form-grid bundle-grid">
+          <label class="field"><span>Тег релиза</span><input id="bundle-tag" autocomplete="off" maxlength="64" placeholder="Точный тег Flowseal" /></label>
+          <label class="field hash-field"><span>Доверенная SHA-256</span><input id="bundle-sha" class="mono" autocomplete="off" maxlength="64" spellcheck="false" placeholder="64 hex-символа из проверенного источника" /></label>
+          <label class="field wide"><span>Локальный ZIP <span class="optional">для импорта</span></span><input id="bundle-path" autocomplete="off" spellcheck="false" placeholder="C:\Users\you\Downloads\zapret-discord-youtube.zip" /></label>
+        </div>
+        <div class="actions"><button id="import-bundle" class="primary" data-command data-admin>Проверить и импортировать</button><button id="download-bundle" data-command data-admin>Скачать по тегу и SHA-256</button><button id="check-updates" class="quiet" data-command>Сверить релиз</button><button id="rollback-bundle" class="quiet" data-command data-admin>Вернуть предыдущий пакет</button></div>
+        <p class="micro">Собственная контрольная сумма неизвестного ZIP не доказывает его подлинность. Сверяйте её с независимым доверенным источником.</p>
+      </section>
+      <section class="card" aria-labelledby="strategy-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">02</span><h2 id="strategy-heading">Стратегия и служба</h2></div><span class="tag">Никаких .bat-процессов</span></div>
+        <div class="strategy-row"><label class="field"><span>Установленная стратегия</span><select id="strategy"><option value="">Сначала импортируйте пакет</option></select></label><button id="preview" data-command>Посмотреть план</button><button id="install" class="primary" data-command data-admin>Установить службу</button></div>
+        <div class="actions secondary-actions"><button id="start" data-command data-admin>Запустить</button><button id="stop" data-command data-admin>Остановить</button><button id="remove" class="danger" data-command data-admin>Удалить только Tandem</button><button id="recover" class="quiet" data-command data-admin>Восстановить прерванную операцию</button></div>
+        <p class="hint">Автозапуск включается только при установке службы. Закрытие окна не останавливает службу. Поддержка конкретной стратегии проверяется до запуска.</p>
+      </section>
+      <section class="card" aria-labelledby="settings-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">03</span><h2 id="settings-heading">Настройки и проверка</h2></div></div>
+        <div class="form-grid settings-grid">
+          <label class="field"><span>Игровые порты</span><select id="game"><option value="disabled">Не расширять</option><option value="tcp">TCP 1024–65535</option><option value="udp">UDP 1024–65535</option><option value="all">TCP и UDP</option></select></label>
+          <label class="field"><span>IPSet</span><select id="ipset"><option value="loaded">Исходный список</option><option value="none">Пустой список</option><option value="any">Все IP-адреса</option></select></label>
+          <label class="check-field"><input type="checkbox" id="check-on-start" /><span>Сверять релиз при открытии<br /><small>Только проверка, без загрузки</small></span></label>
+        </div>
+        <label class="field"><span>HTTPS-цели <span class="optional">один адрес на строку · максимум 12</span></span><textarea id="targets" rows="3" spellcheck="false" placeholder="https://www.youtube.com/&#10;https://discord.com/"></textarea></label>
+        <div class="actions"><button id="save-settings" data-command data-admin>Сохранить настройки</button><button id="test-targets" data-command>Проверить доступность</button></div>
+        <p class="hint">Перед изменением настроек остановите службу. После изменения игровых портов переустановите её. HTTP 403 означает ответ сервера, а не разрыв соединения.</p>
+      </section>
+      <details class="card advanced"><summary>Дополнительные операции: IPSet и hosts</summary>
+        <div class="advanced-content"><p class="notice subtle">Редактирование hosts не включено по умолчанию. Разрешены только публичные IP и домены из явного списка в конфигурации.</p>
+          <label class="field"><span>Абсолютный путь к проверенному текстовому файлу</span><input id="list-path" spellcheck="false" placeholder="C:\Users\you\Downloads\reviewed-list.txt" /></label>
+          <div class="actions"><button id="import-ipset" data-command data-admin>Импортировать IPSet</button><button id="apply-hosts" data-command data-admin>Применить hosts с резервной копией</button><button id="restore-hosts" class="quiet" data-command data-admin>Восстановить hosts</button></div>
+        </div>
+      </details>
+      <section class="card" aria-labelledby="output-heading">
+        <div class="card-head"><h2 id="output-heading">Результат операции</h2><button id="download-report" class="small" disabled>Скачать JSON</button></div>
+        <pre id="result" class="result" tabindex="0">Выберите действие. Здесь появится проверяемый результат, а не предположение об успехе.</pre>
+      </section>
+      <section class="card log-card" aria-labelledby="log-heading"><div class="card-head"><h2 id="log-heading">Журнал сеанса</h2><button id="clear-log" class="small">Очистить</button></div><pre id="log" class="log" role="log" aria-live="polite"></pre></section>
+      <footer><span>Tandem Workbench · GPL-3.0-or-later</span><span>Используйте только там, где это разрешено законом и политикой сети.</span></footer>
+    </main>
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><p class="eyebrow">ПОДТВЕРЖДЕНИЕ ИЗМЕНЕНИЯ</p><h2 id="confirm-title">Применить изменение?</h2><p id="confirm-text"></p><div class="actions"><button value="cancel" autofocus>Отмена</button><button value="confirm" class="primary">Подтвердить</button></div></form></dialog>
+    <script type="module">
+const STATE_LABELS = Object.freeze({
+  running: "Работает", stopped: "Остановлена", start_pending: "Запускается",
+  stop_pending: "Останавливается", continue_pending: "Возобновляется",
+  pause_pending: "Приостанавливается", paused: "Приостановлена", unknown: "Неизвестно",
+});
+function errorMessage(error) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  try { return JSON.stringify(error) ?? "Неизвестная ошибка"; } catch { return "Неизвестная ошибка"; }
+}
+function validateBundle(tag, sha256) {
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(tag) || tag.includes("..") || !/\d/.test(tag)) throw new Error("Введите точный безопасный тег релиза.");
+  if (!/^[a-fA-F0-9]{64}$/.test(sha256)) throw new Error("Нужна доверенная SHA-256: 64 hex-символа.");
+  return { tag, sha256: sha256.toLowerCase() };
+}
+function parseTargets(text) {
+  const values = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (values.length < 1 || values.length > 12) throw new Error("Укажите от 1 до 12 HTTPS-целей.");
+  const seen = new Set();
+  for (const value of values) {
+    let url;
+    try { url = new URL(value); } catch { throw new Error(`Некорректный адрес: ${value}`); }
+    if (url.protocol !== "https:" || url.username || url.password || url.port || url.search || url.hash || !url.hostname.includes(".")) throw new Error("Цели должны быть HTTPS-адресами без учётных данных, нестандартных портов, query и fragment.");
+    if (seen.has(url.href)) throw new Error("Уберите повторяющиеся цели.");
+    seen.add(url.href);
+  }
+  return values;
+}
+function appendLog(lines, text, timestamp, limit = 200) {
+  return [...lines, `[${timestamp}] ${text}`].slice(-limit);
+}
+function createRequestGate(onChange = () => {}) {
+  let busy = false;
+  return {
+    get busy() { return busy; },
+    async run(task) {
+      if (busy) throw new Error("Дождитесь завершения текущей операции.");
+      busy = true; onChange(true);
+      try { return await task(); } finally { busy = false; onChange(false); }
+    },
+  };
+}
+
+
+const $ = (id) => document.getElementById(id);
+const desktop = typeof window.__TAURI__?.core?.invoke === "function";
+let snapshot = null;
+let lines = [];
+let report = null;
+let closing = false;
+let bootCheckDone = false;
+
+function log(message) {
+  lines = appendLog(lines, message, new Date().toLocaleTimeString("ru-RU"));
+  $("log").textContent = lines.join("\n");
+  $("log").scrollTop = $("log").scrollHeight;
+}
+function controls(busy) {
+  for (const button of document.querySelectorAll("[data-command]")) {
+    const requiresAdmin = button.hasAttribute("data-admin");
+    button.disabled = !desktop || busy || closing || (requiresAdmin && !snapshot?.administrator);
+  }
+  for (const input of document.querySelectorAll("input, select, textarea")) input.disabled = !desktop || busy || closing;
+  document.body.setAttribute("aria-busy", String(busy));
+}
+const gate = createRequestGate(controls);
+function show(value) {
+  report = value;
+  $("result").textContent = JSON.stringify(value, null, 2);
+  $("download-report").disabled = false;
+}
+function notify(message, kind = "") {
+  const node = $("feedback"); node.textContent = message; node.className = `notice ${kind}`; node.hidden = false;
+}
+function render(state) {
+  snapshot = state;
+  $("engine-version").textContent = state.bundle?.tag ?? "Не установлен";
+  $("driver-state").textContent = state.driver_present ? "Файл найден" : "Не найден";
+  $("admin-state").textContent = state.administrator ? "Администратор" : "Только чтение";
+  $("root-path").textContent = state.root;
+  $("service-state").textContent = state.service ? (STATE_LABELS[state.service.state] ?? "Неизвестно") : "Не установлена";
+  $("service-dot").className = `status-dot ${state.service?.state === "running" ? "running" : ""}`;
+  const selection = $("strategy").value;
+  const options = state.strategies.map((name) => { const option = document.createElement("option"); option.value = name; option.textContent = name; return option; });
+  if (!options.length) { const option = document.createElement("option"); option.value = ""; option.textContent = "Сначала импортируйте пакет"; options.push(option); }
+  $("strategy").replaceChildren(...options);
+  if (state.strategies.includes(selection)) $("strategy").value = selection;
+  $("game").value = state.config.game_filter;
+  $("ipset").value = state.config.ipset_filter;
+  $("check-on-start").checked = state.config.check_updates_on_start;
+  $("targets").value = state.config.targets.join("\n");
+  const warnings = [];
+  if (!state.administrator) warnings.push("Режим чтения. Для изменений запустите приложение от имени администратора.");
+  if (!state.initialized) warnings.push("Подготовьте защищённый каталог перед первой установкой.");
+  if (state.pending_recovery.length) warnings.push("Обнаружена прерванная операция. Используйте восстановление.");
+  if (state.legacy_service_present) warnings.push("Обнаружена чужая служба zapret. Tandem не будет её удалять.");
+  if (state.service_owned === false) warnings.push("Конфликт имени службы: изменения заблокированы проверкой владельца.");
+  $("environment").textContent = warnings.join(" ") || "Локальный режим. Изменения только по вашему подтверждению; телеметрии нет.";
+  controls(gate.busy);
+}
+async function invoke(action) {
+  if (!desktop) throw new Error("Это просмотр интерфейса, не Windows-приложение. Системные операции недоступны.");
+  return window.__TAURI__.core.invoke("request", { action });
+}
+async function refresh() { const state = await invoke({ type: "get_dashboard" }); render(state); return state; }
+function confirmChange(message) {
+  $("confirm-text").textContent = message;
+  const dialog = $("confirm-dialog"); dialog.returnValue = "cancel";
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => resolve(dialog.returnValue === "confirm"), { once: true });
+    dialog.showModal();
+  });
+}
+async function perform(label, action, confirmation = null, reload = false) {
+  if (gate.busy || closing) return;
+  try {
+    if (confirmation && !(await confirmChange(confirmation))) return;
+    await gate.run(async () => {
+      $("feedback").hidden = true; log(`${label}: начало`);
+      const result = await invoke(action); show(result); log(`${label}: выполнено`);
+      if (reload) {
+        try { await refresh(); } catch (error) { log(`Операция выполнена, но статус не обновлён: ${errorMessage(error)}`); notify("Операция завершена. Обновить статус не удалось — проверьте журнал.", "error"); return; }
+      }
+      notify(`${label}: выполнено.`, "success");
+    });
+  } catch (error) { const message = errorMessage(error); show({ ok: false, operation: label, error: message }); log(`${label}: ${message}`); notify(message, "error"); }
+}
+function bundleFields() { return validateBundle($("bundle-tag").value.trim(), $("bundle-sha").value.trim()); }
+function requiredPath(id) { const path = $(id).value.trim(); if (!path) throw new Error("Укажите абсолютный путь к проверенному локальному файлу."); return path; }
+function requiredStrategy() { const value = $("strategy").value; if (!value) throw new Error("Сначала импортируйте пакет и выберите стратегию."); return value; }
+function bind(id, handler) {
+  $(id).addEventListener("click", async () => { try { await handler(); } catch (error) { notify(errorMessage(error), "error"); log(errorMessage(error)); } });
+}
+bind("refresh", () => gate.run(refresh).catch((error) => { notify(errorMessage(error), "error"); }));
+bind("initialize", () => perform("Подготовка каталога", { type: "initialize" }, "Создать защищённый каталог в Program Files и сохранить безопасную конфигурацию? Службы и hosts пока не изменяются.", true));
+bind("import-bundle", () => perform("Импорт пакета", { type: "import_bundle", path: requiredPath("bundle-path"), ...bundleFields() }, "Вы подтверждаете, что SHA-256 получена из доверенного независимого источника? Пакет будет проверен и заменён с сохранением предыдущей версии. Служба должна быть удалена заранее.", true));
+bind("download-bundle", () => perform("Загрузка пакета", { type: "download_bundle", ...bundleFields() }, "Скачать указанный релиз Flowseal с GitHub и сверить его с доверенной SHA-256? Изменение пакета возможно только при удалённой службе Tandem.", true));
+bind("check-updates", () => perform("Сверка релиза", { type: "check_updates" }));
+bind("rollback-bundle", () => perform("Откат пакета", { type: "rollback_bundle" }, "Вернуть предыдущий управляемый пакет? Сначала удалите службу Tandem. После отката её нужно установить заново.", true));
+bind("preview", () => perform("План стратегии", { type: "preview_strategy", strategy: requiredStrategy() }));
+bind("install", () => perform("Установка службы", { type: "install_service", strategy: requiredStrategy() }, "Установить выбранную стратегию как службу LocalSystem с автозапуском? Это изменит обработку сетевого трафика. Приложение проверит план, права и состояние службы.", true));
+bind("start", () => perform("Запуск службы", { type: "start_service" }, "Запустить службу Tandem с ранее установленной стратегией?", true));
+bind("stop", () => perform("Остановка службы", { type: "stop_service" }, "Остановить только службу Tandem? Связь с некоторыми сервисами может измениться.", true));
+bind("remove", () => perform("Удаление службы", { type: "remove_service" }, "Остановить и удалить только tandem-zapret? Общие драйверы WinDivert, чужие службы и hosts не будут затронуты.", true));
+bind("recover", () => perform("Восстановление", { type: "recover" }, "Восстановить согласованное состояние по журналам прерванных операций? Для hosts предусмотрена отдельная команда восстановления.", true));
+bind("save-settings", () => {
+  if (!snapshot) throw new Error("Сначала получите текущую конфигурацию.");
+  const config = { ...snapshot.config, game_filter: $("game").value, ipset_filter: $("ipset").value, check_updates_on_start: $("check-on-start").checked, targets: parseTargets($("targets").value) };
+  return perform("Сохранение настроек", { type: "save_config", config }, "Сохранить настройки и применить режим IPSet? Служба должна быть остановлена. Новые параметры стратегии применятся после её переустановки.", true);
+});
+bind("diagnostics", () => perform("Диагностика", { type: "diagnostics" }));
+bind("test-targets", () => perform("Проверка доступности", { type: "test_targets" }));
+bind("support", () => perform("Обезличенный отчёт", { type: "export_support" }));
+bind("import-ipset", () => perform("Импорт IPSet", { type: "import_ipset", path: requiredPath("list-path") }, "Заменить исходный IPSet проверенными IP/CIDR из локального файла? Активный режим сохранится. Служба должна быть остановлена.", true));
+bind("apply-hosts", () => perform("Применение hosts", { type: "apply_hosts", path: requiredPath("list-path") }, "Изменить системный hosts? Будут разрешены только домены из конфигурации и публичные IP. Оригинал сохранится для восстановления.", true));
+bind("restore-hosts", () => perform("Восстановление hosts", { type: "restore_hosts" }, "Восстановить исходный hosts? Если файл был изменён другим приложением, автоматическая перезапись будет запрещена.", true));
+bind("clear-log", () => { lines = []; $("log").textContent = ""; });
+bind("download-report", () => {
+  if (report === null) return;
+  const file = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(file); const link = document.createElement("a");
+  link.href = url; link.download = "tandem-result.json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+async function boot() {
+  if (!desktop) {
+    $("environment").textContent = "Просмотр интерфейса. Это не работающий VPN и не Windows-клиент: системные действия отключены. Запустите desktop-сборку для реальных операций.";
+    log("Открыт безопасный browser preview: backend отсутствует, результаты не симулируются."); controls(false); return;
+  }
+  if (window.__TAURI__?.event?.listen) {
+    try {
+      await window.__TAURI__.event.listen("shutdown-wait", (event) => { closing = true; controls(true); notify(String(event.payload)); });
+    } catch (error) { log(`Не удалось подписаться на событие закрытия: ${errorMessage(error)}`); }
+  }
+  try {
+    const state = await gate.run(refresh); log("Подключено локальное Windows-приложение.");
+    if (state.config.check_updates_on_start && !bootCheckDone) { bootCheckDone = true; await perform("Проверка релиза при запуске", { type: "check_updates" }); }
+  } catch (error) { notify(errorMessage(error), "error"); log(`Не удалось получить состояние: ${errorMessage(error)}`); }
+}
+await boot();
+
+</script>
+  </body>
+</html>

@@ -1,93 +1,84 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tandem-vpn</title>
-    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Tandem Workbench — проверяемое управление Zapret на Windows." />
+    <title>Tandem Workbench</title>
+    <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <span class="logo">⟁</span>
-        <div>
-          <h1>tandem-vpn</h1>
-          <p class="sub">Фаза 1 — Zapret (Flowseal) GUI</p>
-        </div>
-      </div>
-      <nav class="tabs">
-        <button class="tab active" data-tab="zapret">Zapret</button>
-        <button class="tab" data-tab="warp" disabled title="Фаза 2">WARP</button>
-        <button class="tab" data-tab="goida" disabled title="Фаза 3">Goida</button>
-      </nav>
+      <a class="brand" href="#main" aria-label="Tandem Workbench — главная">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span><strong>Tandem</strong><span class="brand-sub">WORKBENCH</span></span>
+      </a>
+      <span class="edition">Local-first · Windows x64 · 0.2.0</span>
     </header>
-
-    <main id="zapret" class="panel active">
-      <section class="card status-card">
-        <div class="card-head">
-          <h2>Статус</h2>
-          <button id="refresh" class="ghost">Обновить</button>
-        </div>
-        <div class="status-grid">
-          <div class="stat"><span class="label">Служба zapret</span><span id="st-service" class="val">—</span></div>
-          <div class="stat"><span class="label">WinDivert</span><span id="st-windivert" class="val">—</span></div>
-          <div class="stat"><span class="label">winws.exe</span><span id="st-winws" class="val">—</span></div>
-          <div class="stat"><span class="label">.sys драйвер</span><span id="st-sys" class="val">—</span></div>
-          <div class="stat wide"><span class="label">Стратегия</span><span id="st-strategy" class="val">—</span></div>
-        </div>
+    <main id="main">
+      <section class="hero">
+        <div><p class="eyebrow">ПОДКЛЮЧЕНИЯ ПОД КОНТРОЛЕМ</p><h1>Проверить. Применить. Восстановить.</h1>
+          <p class="lede">Рабочее место IT-поддержки для Zapret. Без запуска batch-скриптов, скрытых обновлений и чужих служб.</p></div>
+        <div class="hero-actions"><button id="diagnostics" data-command>Диагностика</button><button id="support" data-command>Отчёт для поддержки</button></div>
       </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Управление службой</h2></div>
-        <div class="row">
-          <label class="field">
-            <span>Стратегия обхода</span>
-            <select id="strategy"></select>
-          </label>
-          <div class="actions">
-            <button id="install" class="primary">Установить в автозапуск</button>
-            <button id="remove" class="danger">Удалить службы</button>
-          </div>
+      <div id="environment" class="notice" role="status">Подключение к локальному приложению…</div>
+      <div id="feedback" class="notice" role="alert" hidden></div>
+      <div class="overview">
+        <section class="card service-card" aria-labelledby="service-heading">
+          <div class="card-head"><h2 id="service-heading">Служба Tandem</h2><button id="refresh" class="small" data-command>Обновить</button></div>
+          <div class="service-status"><span id="service-dot" class="status-dot" aria-hidden="true"></span><strong id="service-state">Не проверено</strong></div>
+          <p class="hint">Управляем только <code>tandem-zapret</code>. Общие драйверы WinDivert не удаляем.</p>
+          <dl class="facts"><div><dt>Пакет движка</dt><dd id="engine-version">—</dd></div><div><dt>Драйвер</dt><dd id="driver-state">—</dd></div><div><dt>Права</dt><dd id="admin-state">—</dd></div></dl>
+        </section>
+        <section class="card policy-card" aria-labelledby="policy-heading">
+          <p class="eyebrow">БЕЗОПАСНЫЙ РЕЖИМ РАБОТЫ</p><h2 id="policy-heading">Никакой магии.<br />Каждое изменение — явно.</h2>
+          <ul class="principles"><li>SHA-256 до распаковки</li><li>Журнал восстановления до изменения</li><li>Никакой телеметрии и облачного аккаунта</li></ul>
+          <p class="hint">Это не VPN: нет туннеля, смены IP или дополнительного шифрования.</p>
+        </section>
+      </div>
+      <section class="card" aria-labelledby="engine-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">01</span><h2 id="engine-heading">Проверяемый пакет</h2></div><button id="initialize" data-command data-admin>Подготовить каталог</button></div>
+        <p class="hint">Каталог данных: <code id="root-path">защищённый Program Files\TandemWorkbench</code>. Для замены пакета сначала удалите службу Tandem.</p>
+        <div class="form-grid bundle-grid">
+          <label class="field"><span>Тег релиза</span><input id="bundle-tag" autocomplete="off" maxlength="64" placeholder="Точный тег Flowseal" /></label>
+          <label class="field hash-field"><span>Доверенная SHA-256</span><input id="bundle-sha" class="mono" autocomplete="off" maxlength="64" spellcheck="false" placeholder="64 hex-символа из проверенного источника" /></label>
+          <label class="field wide"><span>Локальный ZIP <span class="optional">для импорта</span></span><input id="bundle-path" autocomplete="off" spellcheck="false" placeholder="C:\Users\you\Downloads\zapret-discord-youtube.zip" /></label>
         </div>
+        <div class="actions"><button id="import-bundle" class="primary" data-command data-admin>Проверить и импортировать</button><button id="download-bundle" data-command data-admin>Скачать по тегу и SHA-256</button><button id="check-updates" class="quiet" data-command>Сверить релиз</button><button id="rollback-bundle" class="quiet" data-command data-admin>Вернуть предыдущий пакет</button></div>
+        <p class="micro">Собственная контрольная сумма неизвестного ZIP не доказывает его подлинность. Сверяйте её с независимым доверенным источником.</p>
       </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Настройки</h2></div>
-        <div class="toggles">
-          <label class="switch"><input type="checkbox" id="game" /><span>Game Filter (UDP/TCP &gt;1023)</span></label>
-          <label class="switch"><input type="checkbox" id="autoupd" /><span>Auto-Update Check</span></label>
-          <label class="field inline">
-            <span>IPSet Filter</span>
-            <select id="ipset">
-              <option value="none">none</option>
-              <option value="loaded">loaded</option>
-              <option value="any">any</option>
-            </select>
-          </label>
+      <section class="card" aria-labelledby="strategy-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">02</span><h2 id="strategy-heading">Стратегия и служба</h2></div><span class="tag">Никаких .bat-процессов</span></div>
+        <div class="strategy-row"><label class="field"><span>Установленная стратегия</span><select id="strategy"><option value="">Сначала импортируйте пакет</option></select></label><button id="preview" data-command>Посмотреть план</button><button id="install" class="primary" data-command data-admin>Установить службу</button></div>
+        <div class="actions secondary-actions"><button id="start" data-command data-admin>Запустить</button><button id="stop" data-command data-admin>Остановить</button><button id="remove" class="danger" data-command data-admin>Удалить только Tandem</button><button id="recover" class="quiet" data-command data-admin>Восстановить прерванную операцию</button></div>
+        <p class="hint">Автозапуск включается только при установке службы. Закрытие окна не останавливает службу. Поддержка конкретной стратегии проверяется до запуска.</p>
+      </section>
+      <section class="card" aria-labelledby="settings-heading">
+        <div class="card-head"><div class="step-heading"><span class="step">03</span><h2 id="settings-heading">Настройки и проверка</h2></div></div>
+        <div class="form-grid settings-grid">
+          <label class="field"><span>Игровые порты</span><select id="game"><option value="disabled">Не расширять</option><option value="tcp">TCP 1024–65535</option><option value="udp">UDP 1024–65535</option><option value="all">TCP и UDP</option></select></label>
+          <label class="field"><span>IPSet</span><select id="ipset"><option value="loaded">Исходный список</option><option value="none">Пустой список</option><option value="any">Все IP-адреса</option></select></label>
+          <label class="check-field"><input type="checkbox" id="check-on-start" /><span>Сверять релиз при открытии<br /><small>Только проверка, без загрузки</small></span></label>
         </div>
+        <label class="field"><span>HTTPS-цели <span class="optional">один адрес на строку · максимум 12</span></span><textarea id="targets" rows="3" spellcheck="false" placeholder="https://www.youtube.com/&#10;https://discord.com/"></textarea></label>
+        <div class="actions"><button id="save-settings" data-command data-admin>Сохранить настройки</button><button id="test-targets" data-command>Проверить доступность</button></div>
+        <p class="hint">Перед изменением настроек остановите службу. После изменения игровых портов переустановите её. HTTP 403 означает ответ сервера, а не разрыв соединения.</p>
       </section>
-
-      <section class="card">
-        <div class="card-head"><h2>Обновления и инструменты</h2></div>
-        <div class="actions wrap">
-          <button id="dl-zapret" class="primary">Скачать и установить Zapret</button>
-          <button id="upd-hosts" class="primary">Обновить Hosts-файл</button>
-          <button id="upd-ipset" class="ghost">Обновить IPSet-список</button>
-          <button id="chk-upd" class="ghost">Проверить обновления</button>
-          <button id="diag" class="ghost">Диагностика</button>
-          <button id="tests" class="ghost">Запустить тесты</button>
+      <details class="card advanced"><summary>Дополнительные операции: IPSet и hosts</summary>
+        <div class="advanced-content"><p class="notice subtle">Редактирование hosts не включено по умолчанию. Разрешены только публичные IP и домены из явного списка в конфигурации.</p>
+          <label class="field"><span>Абсолютный путь к проверенному текстовому файлу</span><input id="list-path" spellcheck="false" placeholder="C:\Users\you\Downloads\reviewed-list.txt" /></label>
+          <div class="actions"><button id="import-ipset" data-command data-admin>Импортировать IPSet</button><button id="apply-hosts" data-command data-admin>Применить hosts с резервной копией</button><button id="restore-hosts" class="quiet" data-command data-admin>Восстановить hosts</button></div>
         </div>
+      </details>
+      <section class="card" aria-labelledby="output-heading">
+        <div class="card-head"><h2 id="output-heading">Результат операции</h2><button id="download-report" class="small" disabled>Скачать JSON</button></div>
+        <pre id="result" class="result" tabindex="0">Выберите действие. Здесь появится проверяемый результат, а не предположение об успехе.</pre>
       </section>
-
-      <section class="card">
-        <div class="card-head">
-          <h2>Лог</h2>
-          <button id="clear-log" class="ghost">Очистить</button>
-        </div>
-        <pre id="log" class="log"></pre>
-      </section>
+      <section class="card log-card" aria-labelledby="log-heading"><div class="card-head"><h2 id="log-heading">Журнал сеанса</h2><button id="clear-log" class="small">Очистить</button></div><pre id="log" class="log" role="log" aria-live="polite"></pre></section>
+      <footer><span>Tandem Workbench · GPL-3.0-or-later</span><span>Используйте только там, где это разрешено законом и политикой сети.</span></footer>
     </main>
-
-    <script type="module" src="/src/main.js"></script>
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title"><form method="dialog"><p class="eyebrow">ПОДТВЕРЖДЕНИЕ ИЗМЕНЕНИЯ</p><h2 id="confirm-title">Применить изменение?</h2><p id="confirm-text"></p><div class="actions"><button value="cancel" autofocus>Отмена</button><button value="confirm" class="primary">Подтвердить</button></div></form></dialog>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

@@ -2,17 +2,24 @@
 name = "tandem-core"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Cross-platform core logic for the tandem-vpn GUI (Zapret service management, strategy parsing)."
+description = "Auditable Windows connectivity operations, shared by Tandem CLI and Tauri."
 
 [lib]
 name = "tandem_core"
 path = "src/lib.rs"
 
-[dependencies]
-serde = { version = "1", features = ["derive"] }
-thiserror = "1"
+[[bin]]
+name = "tandem"
+path = "src/bin/tandem.rs"
 
-[dev-dependencies]
-serde_json = "1"
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+thiserror = "=1.0.69"
+sha2 = "=0.10.9"
+url = "=2.5.8"
+ureq = { version = "=2.12.1", features = ["tls"] }
+zip = "=0.6.6"

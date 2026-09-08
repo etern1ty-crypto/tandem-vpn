@@ -1,13 +1,16 @@
 [workspace]
 resolver = "2"
 members = ["core", "app/src-tauri"]
+default-members = ["core"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+rust-version = "1.89"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/etern1ty-crypto/tandem-vpn"
 
 [profile.release]
 strip = true
 lto = true
+codegen-units = 1
