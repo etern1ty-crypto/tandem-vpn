@@ -19,7 +19,7 @@ path = "src/bin/tandem.rs"
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
 thiserror = "=1.0.69"
-sha2 = "=0.10.9"
+sha2 = "=0.11.0"
 url = "=2.5.8"
 ureq = { version = "=2.12.1", features = ["tls"] }
 zip = "=0.6.6"
