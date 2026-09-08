@@ -22,4 +22,4 @@ thiserror = "=1.0.69"
 sha2 = "=0.10.9"
 url = "=2.5.8"
 ureq = { version = "=2.12.1", features = ["tls"] }
-zip = "=0.6.6"
+zip = "=8.6.0"
