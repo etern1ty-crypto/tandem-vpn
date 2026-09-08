@@ -40,7 +40,7 @@ jobs:
       - name: Preserve canonical formatting diff for review
         if: always()
         run: git diff --binary > rustfmt.patch
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: native-source-review
